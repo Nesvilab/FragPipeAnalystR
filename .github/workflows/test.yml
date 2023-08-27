@@ -30,11 +30,7 @@ jobs:
         with:
           use-public-rspm: true
       # it's needed since setup-renv doesn't support working directory yey https://github.com/r-lib/actions/issues/618
-      - name: build renv
-        run: |
-          cp -r FragPipeR/renv/ renv/
-          cp FragPipeR/renv.lock renv.lock
       - uses: r-lib/actions/setup-renv@v2 
       - name: test
-        run: 'devtools::test("FragPipeR")'
+        run: 'devtools::test(".")'
         shell: Rscript {0} 
