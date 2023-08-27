@@ -1,0 +1,28 @@
+---
+title: "FragPipeR Tutorial"
+output:
+  html_document:
+    keep_md: yes
+---
+
+# Introduction
+
+FragPipeR is a R package intended for FragPipe downstream analysis. We also make it compatible with the result obtained from FragPipe-Analyst. Users are able to reproduce and customize the plots generated in FragPipe-Analyst.
+
+## Quick Start Example
+``` {r include=T, warning=F}
+library(FragPipeR)
+data("ccrcc", package = "FragPipeR")
+```
+
+``` {r include=T, warning=F}
+plot_pca(ccrcc, n=500, ID_col="label", exp="TMT")
+```
+
+``` {r include=T, warning=F}
+plot_correlation_heatmap(ccrcc, indicate="condition", exp="TMT")
+```
+
+``` {r include=T, warning=F}
+plot_missval_heatmap(ccrcc)
+```
