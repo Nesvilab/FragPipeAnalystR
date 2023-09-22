@@ -64,7 +64,7 @@ GSEA_test <- function(se, col=NULL, database="GO Biological Process", file=NULL,
 #' @export
 plot_GSEA <- function(gsea_result, categroies=10) {
   temp <- gsea_result[order(gsea_result$NES, decreasing = T),]
-  ID_selected <- temp[c(1:categroies, (dim(temp)[1]-5):dim(temp)[1]),"ID"]
+  ID_selected <- temp[c(1:categroies, (dim(temp)[1]-categroies + 1):dim(temp)[1]),"ID"]
   temp <- temp[temp$ID %in% ID_selected,]
   temp$ID <- factor(temp$ID, levels = rev(ID_selected))
   plot <- ggplot(temp, aes(x=NES, y=ID, size=Count, color=p.adjust)) +
