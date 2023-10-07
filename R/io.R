@@ -28,7 +28,7 @@ make.unique.2 <- function(x, sep = ".") {
 }
 
 # internal function to read quantification table
-readQuantTable <- function(quant_table_path, type = "TMT", log2transform = F) {
+readQuantTable <- function(quant_table_path, type = "TMT", level=NULL, log2transform = F) {
   temp_data <- read.table(quant_table_path,
     header = TRUE,
     fill = TRUE, # to fill any missing data
@@ -52,8 +52,16 @@ readQuantTable <- function(quant_table_path, type = "TMT", log2transform = F) {
     # remove contam
     temp_data <- temp_data[!grepl("contam", temp_data$Protein), ]
   } else { # DIA
-    # validate(fragpipe_DIA_input_test(temp_data))
-    # temp_data <- temp_data[!grepl("contam", temp_data$Protein),]
+    if (level == "peptide") {
+      # validate(fragpipe_DIA_input_test(temp_data))
+      # temp_data <- temp_data[!grepl("contam", temp_data$Protein),]
+      temp_data <- temp_data %>% select(.,-c("Proteotypic", "Precursor.Charge")) %>%
+        group_by(Protein.Group, Protein.Names, Protein.Ids, Genes, Stripped.Sequence) %>%
+        summarise_if(is.numeric, max, na.rm=T)
+      temp_data[sapply(temp_data, is.infinite)] <- NA
+      temp_data$Index <- paste0(temp_data$Protein.Ids, "_", temp_data$Stripped.Sequence)
+      temp_data <- temp_data %>% select(Index, everything())
+    }
   }
   return(temp_data)
 }
@@ -149,7 +157,7 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
     return(NULL)
   }
 
-  quant_table <- readQuantTable(quant_table_path, type = type)
+  quant_table <- readQuantTable(quant_table_path, type = type, level=level)
   exp_design <- readExpDesign(exp_anno_path, type = type, lfq_type = lfq_type)
   if (type == "LFQ") {
     data_unique <- make_unique(quant_table, "Gene", "Protein ID")
@@ -181,15 +189,25 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
                                     exp="LFQ", lfq_type = lfq_type)
     }
   } else if (type == "DIA") {
-    data_unique <- make_unique(quant_table, "Genes", "Protein.Group")
-    cols <- colnames(data_unique)
-    selected_cols <- which(!(cols %in% c("Protein.Group", "Protein.Ids", "Protein.Names", "Genes", "First.Protein.Description", "ID", "name")))
-    # TODO: use DIA function
-    # test_match_DIA_column_design(data_unique, selected_cols, exp_design)
-    data_se <- make_se_customized(data_unique, selected_cols, exp_design,
-                                  log2transform = T, exp="DIA")
-    dimnames(data_se) <- list(dimnames(data_se)[[1]], colData(data_se)$sample_name)
-    colData(data_se)$label <- colData(data_se)$sample_name
+    if (level != "peptide") {
+      data_unique <- make_unique(quant_table, "Genes", "Protein.Group")
+      cols <- colnames(data_unique)
+      selected_cols <- which(!(cols %in% c("Protein.Group", "Protein.Ids", "Protein.Names", "Genes", "First.Protein.Description", "ID", "name")))
+      # TODO: use DIA function
+      # test_match_DIA_column_design(data_unique, selected_cols, exp_design)
+      data_se <- make_se_customized(data_unique, selected_cols, exp_design,
+                                    log2transform = T, exp="DIA")
+      dimnames(data_se) <- list(dimnames(data_se)[[1]], colData(data_se)$sample_name)
+      colData(data_se)$label <- colData(data_se)$sample_name
+    } else { # level == "peptide"
+      data_unique <- make_unique(quant_table, "Index", "Protein.Group")
+      cols <- colnames(data_unique)
+      selected_cols <- which(!(cols %in% c("Index", "Protein.Group", "Protein.Ids", "Stripped.Sequence", "Protein.Names", "Genes", "First.Protein.Description", "ID", "name")))
+      # test_match_DIA_column_design(data_unique, selected_cols, exp_design)
+      data_se <- make_se_customized(data_unique, selected_cols, exp_design, log2transform=T, exp="DIA", level="peptide")
+      dimnames(data_se) <- list(dimnames(data_se)[[1]], colData(data_se)$sample_name)
+      colData(data_se)$label <- colData(data_se)$sample_name
+    }
   } else { # TMT
     temp_exp_design <- exp_design
     # sample without specified condition will be removed
@@ -329,9 +347,9 @@ make_unique <- function(proteins, names, ids, delim = ";") {
 #' @param columns Integer vector,
 #' Column numbers indicating the columns containing the assay data.
 #' @param expdesign Data.frame,
-#' Experimental design with 'label', 'condition'
-#' and 'replicate' information.
-#' See \code{\link{UbiLength_ExpDesign}} for an example experimental design.
+#' Experimental design with 'label', 'condition' and 'replicate' information.
+#' @param exp quantification method i.e. LFQ, TMT, or DIA
+#' @param level which level of the quantification table summarized at. For example, protein or peptide
 #' @return A SummarizedExperiment object
 #' with log2-transformed values.
 #' @examples
@@ -345,8 +363,8 @@ make_unique <- function(proteins, names, ids, delim = ";") {
 #' exp_design <- UbiLength_ExpDesign
 #' se <- make_se(data_unique, columns, exp_design)
 #' @export
-make_se_customized <- function(proteins_unique, columns, expdesign, log2transform = F, exp="LFQ",
-                               lfq_type=NULL) {
+make_se_customized <- function(proteins_unique, columns, expdesign, log2transform = F, exp="LFQ", lfq_type=NULL,
+                               level=NULL, exp_type=NULL) {
   # Show error if inputs are not the required classes
   # assertthat::assert_that(is.data.frame(proteins_unique),
   #                         is.integer(columns),
@@ -368,7 +386,7 @@ make_se_customized <- function(proteins_unique, columns, expdesign, log2transfor
   }
   if (any(!apply(proteins_unique[, columns], 2, is.numeric))) {
     stop("specified 'columns' should be numeric",
-      "\nRun make_se_parse() with the appropriate columns as argument",
+      "\nRun make_se_customized() with the appropriate columns as argument",
       call. = FALSE
     )
   }
@@ -424,8 +442,8 @@ make_se_customized <- function(proteins_unique, columns, expdesign, log2transfor
     assays = as.matrix(raw),
     colData = expdesign,
     rowData = row_data,
-    metadata = list("log2transform"=log2transform, "exp"=exp,
-                    "lfq_type"=lfq_type, "exp_type"=NULL)
+    metadata = list("log2transform"=log2transform, "exp"=exp, "lfq_type"=lfq_type,
+                    "exp_type"=exp_type, "level"=level)
   )
   return(se)
 }

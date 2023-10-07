@@ -23,6 +23,7 @@
 #' @importFrom dplyr select
 #' @importFrom dplyr slice
 #' @importFrom dplyr summarise
+#' @importFrom dplyr summarise_if
 #' @importFrom dplyr summarize
 #' @importFrom fdrtool fdrtool
 #' @importFrom ggplot2 aes

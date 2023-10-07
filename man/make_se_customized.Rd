@@ -11,7 +11,9 @@ make_se_customized(
   expdesign,
   log2transform = F,
   exp = "LFQ",
-  lfq_type = NULL
+  lfq_type = NULL,
+  level = NULL,
+  exp_type = NULL
 )
 }
 \arguments{
@@ -23,9 +25,11 @@ Protein table with unique names annotated in the 'name' column
 Column numbers indicating the columns containing the assay data.}
 
 \item{expdesign}{Data.frame,
-Experimental design with 'label', 'condition'
-and 'replicate' information.
-See \code{\link{UbiLength_ExpDesign}} for an example experimental design.}
+Experimental design with 'label', 'condition' and 'replicate' information.}
+
+\item{exp}{quantification method i.e. LFQ, TMT, or DIA}
+
+\item{level}{which level of the quantification table summarized at. For example, protein or peptide}
 }
 \value{
 A SummarizedExperiment object
