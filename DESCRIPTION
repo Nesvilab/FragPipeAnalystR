@@ -1,4 +1,4 @@
-Package: FragPipeR
+Package: FragPipeAnalystR
 Type: Package
 Title: FragPipe downstream analysis in R
 Version: 0.1.0

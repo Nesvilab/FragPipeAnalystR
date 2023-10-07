@@ -1,4 +1,4 @@
-# FragPipeR
+# FragPipeAnalystR
 
 R package for FragPipe downstream analysis
 
