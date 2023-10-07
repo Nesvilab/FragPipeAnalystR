@@ -5,8 +5,8 @@ R package for FragPipe downstream analysis
 ## Example
 
 ```
-library(FragPipeR)
-data("ccrcc", package = "FragPipeR")
+library(FragPipeAnalystR)
+data("ccrcc", package = "FragPipeAnalystR")
 ```
 
 ```
