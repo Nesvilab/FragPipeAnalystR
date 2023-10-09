@@ -46,11 +46,21 @@ readQuantTable <- function(quant_table_path, type = "TMT", level=NULL, log2trans
     mut.cols <- colnames(temp_data)[!colnames(temp_data) %in% c("Index", "Gene", "Peptide", "NumberPSM", "ProteinID", "MaxPepProb", "SequenceWindow", "ReferenceIntensity")]
     temp_data[mut.cols] <- sapply(temp_data[mut.cols], as.numeric)
   } else if (type == "LFQ") {
-    # handle - (dash) in experiment column
-    colnames(temp_data) <- gsub("-", ".", colnames(temp_data))
-    # validate(fragpipe_input_test(temp_data))
-    # remove contam
-    temp_data <- temp_data[!grepl("contam", temp_data$Protein), ]
+    if (level == "peptide") {
+      # handle - (dash) in experiment column
+      colnames(temp_data) <- gsub("-", ".", colnames(temp_data))
+      colnames(temp_data)[colnames(temp_data) == "Protein Description"] <- "Description"
+      # validate(fragpipe_input_test(temp_data))
+      # remove contam
+      temp_data <- temp_data[!grepl("contam", temp_data$Protein),]
+      temp_data$Index <- paste0(temp_data$`Protein ID`, "_", temp_data$`Peptide Sequence`)
+    } else {
+      # handle - (dash) in experiment column
+      colnames(temp_data) <- gsub("-", ".", colnames(temp_data))
+      # validate(fragpipe_input_test(temp_data))
+      # remove contam
+      temp_data <- temp_data[!grepl("contam", temp_data$Protein), ]
+    }
   } else { # DIA
     if (level == "peptide") {
       # validate(fragpipe_DIA_input_test(temp_data))
@@ -160,33 +170,59 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
   quant_table <- readQuantTable(quant_table_path, type = type, level=level)
   exp_design <- readExpDesign(exp_anno_path, type = type, lfq_type = lfq_type)
   if (type == "LFQ") {
-    data_unique <- make_unique(quant_table, "Gene", "Protein ID")
-    if (lfq_type == "Intensity") {
-      lfq_columns <- setdiff(
-        grep("Intensity", colnames(data_unique)),
-        grep("MaxLFQ", colnames(data_unique))
-      )
-      lfq_columns <- setdiff(lfq_columns, grep("Total Intensity", colnames(data_unique)))
-      lfq_columns <- setdiff(lfq_columns, grep("Unique Intensity", colnames(data_unique)))
-    } else if (lfq_type == "MaxLFQ") {
-      lfq_columns <- grep("MaxLFQ", colnames(data_unique))
-      if (length(lfq_columns) == 0) {
-        stop(safeError("No MaxLFQ column available. Please make sure your file has MaxLFQ intensity columns."))
+    if (level != "peptide") {
+      data_unique <- make_unique(quant_table, "Gene", "Protein ID")
+      if (lfq_type == "Intensity") {
+        lfq_columns <- setdiff(
+          grep("Intensity", colnames(data_unique)),
+          grep("MaxLFQ", colnames(data_unique))
+        )
+        lfq_columns <- setdiff(lfq_columns, grep("Total Intensity", colnames(data_unique)))
+        lfq_columns <- setdiff(lfq_columns, grep("Unique Intensity", colnames(data_unique)))
+      } else if (lfq_type == "MaxLFQ") {
+        lfq_columns <- grep("MaxLFQ", colnames(data_unique))
+        if (length(lfq_columns) == 0) {
+          stop(safeError("No MaxLFQ column available. Please make sure your file has MaxLFQ intensity columns."))
+        }
+      } else if (lfq_type == "Spectral Count") {
+        lfq_columns <- grep("Spectral", colnames(data_unique))
+        lfq_columns <- setdiff(lfq_columns, grep("Total Spectral Count", colnames(data_unique)))
+        lfq_columns <- setdiff(lfq_columns, grep("Unique Spectral Count", colnames(data_unique)))
       }
-    } else if (lfq_type == "Spectral Count") {
-      lfq_columns <- grep("Spectral", colnames(data_unique))
-      lfq_columns <- setdiff(lfq_columns, grep("Total Spectral Count", colnames(data_unique)))
-      lfq_columns <- setdiff(lfq_columns, grep("Unique Spectral Count", colnames(data_unique)))
-    }
 
-    ## Check for matching columns in expression report and experiment manifest file
-    # test_match_lfq_column_manifest(data_unique, lfq_columns, exp_design)
-    if (lfq_type == "Spectral Count") {
-      data_se <- make_se_customized(data_unique, lfq_columns, exp_design, log2transform = F,
-                                    exp="LFQ", lfq_type = lfq_type)
+      ## Check for matching columns in expression report and experiment manifest file
+      # test_match_lfq_column_manifest(data_unique, lfq_columns, exp_design)
+      if (lfq_type == "Spectral Count") {
+        data_se <- make_se_customized(data_unique, lfq_columns, exp_design, log2transform = F,
+                                      exp="LFQ", lfq_type = lfq_type)
+      } else {
+        data_se <- make_se_customized(data_unique, lfq_columns, exp_design, log2transform = T,
+                                      exp="LFQ", lfq_type = lfq_type)
+      }
     } else {
-      data_se <- make_se_customized(data_unique, lfq_columns, exp_design, log2transform = T,
-                                    exp="LFQ", lfq_type = lfq_type)
+      data_unique <- make_unique(quant_table, "Index", "Protein ID")
+      if (lfq_type == "Intensity") {
+        lfq_columns <- setdiff(grep("Intensity", colnames(data_unique)),
+                               grep("MaxLFQ", colnames(data_unique)))
+        lfq_columns <- setdiff(lfq_columns, grep("Total Intensity", colnames(data_unique)))
+        lfq_columns <- setdiff(lfq_columns, grep("Unique Intensity", colnames(data_unique)))
+      } else if (lfq_type == "MaxLFQ") {
+        lfq_columns<-grep("MaxLFQ", colnames(data_unique))
+        if (length(lfq_columns) == 0) {
+          stop(safeError("No MaxLFQ column available. Please make sure your files have MaxLFQ intensity columns."))
+        }
+      } else if (lfq_type == "Spectral Count") {
+        lfq_columns<-grep("Spectral", colnames(data_unique))
+        lfq_columns <- setdiff(lfq_columns, grep("Total Spectral Count", colnames(data_unique)))
+        lfq_columns <- setdiff(lfq_columns, grep("Unique Spectral Count", colnames(data_unique)))
+      }
+      # TODO: Check for matching columns in expression report and experiment manifest file
+      # test_match_lfq_column_manifest(data_unique, lfq_columns, exp_design)
+      if (lfq_type == "Spectral Count") {
+        data_se <- make_se_customized(data_unique, lfq_columns, exp_design, log2transform=F, exp="LFQ", lfq_type="Spectral Count", level="peptide")
+      } else {
+        data_se <- make_se_customized(data_unique, lfq_columns, exp_design, log2transform=T, exp="LFQ", lfq_type=lfq_type, level="peptide")
+      }
     }
   } else if (type == "DIA") {
     if (level != "peptide") {
