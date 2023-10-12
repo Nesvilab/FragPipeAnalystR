@@ -16,7 +16,7 @@ MD_normalization <- function(se) {
 }
 
 #' @export
-PTM_normalization <- function(ptm_se, se) {
+PTM_normalization <- function(ptm_se, se, print_progress=F) {
   pprot <- gsub("_.*", "", rowData(ptm_se)$Index)
   inter_prot <- intersect(pprot, rowData(se)$Index)
 
@@ -68,8 +68,9 @@ PTM_normalization <- function(ptm_se, se) {
     record_pos_end[i] = record_pos_start[i]-1+ length(phos_d)
     all_psite[record_pos_start[i]: record_pos_end[i]] = phos_d
     all_prot[record_pos_start[i]: record_pos_end[i]] = prot_d
-    if(i%%1000 ==0)
-      cat(i, "\n")
+    if(print_progress & i%%1000 ==0) {
+      print(paste0(i, "/", length(inter_prot),"\n"))
+    }
   }
 
 
