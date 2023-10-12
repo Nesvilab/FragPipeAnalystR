@@ -32,6 +32,7 @@
 #' @importFrom ggplot2 element_text
 #' @importFrom ggplot2 facet_wrap
 #' @importFrom ggplot2 geom_bar
+#' @importFrom ggplot2 geom_boxplot
 #' @importFrom ggplot2 geom_histogram
 #' @importFrom ggplot2 geom_point
 #' @importFrom ggplot2 geom_text
