@@ -49,6 +49,7 @@
 #' @importFrom ggrepel geom_text_repel
 #' @importFrom grid gpar
 #' @importFrom grid unit
+#' @importFrom httr GET
 #' @importFrom limma contrasts.fit
 #' @importFrom limma eBayes
 #' @importFrom limma lmFit
