@@ -24,6 +24,7 @@ jobs:
       # use an action provided by github to checkout the repo
       - name: install required library
         run: |
+          sudo apt-get update
           sudo apt-get install libnetcdf19 libcurl4-openssl-dev libglpk-dev
       - uses: actions/checkout@v3
       - uses: r-lib/actions/setup-r@v2
