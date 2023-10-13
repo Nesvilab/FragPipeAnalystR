@@ -1,10 +1,13 @@
 #' @export
 GSEA_test <- function(se, col=NULL, database="GO Biological Process", file=NULL, minGSSize=0, eps=0, convert=T) {
-  if (is.null(col)) {
+  if (metadata(se)$level %in% c("peptide")) {
+    print("Error: Currently, GSEA test doesn't support peptide level data.")
+    return(NULL)
+  } else if (is.null(col)) {
     cat("Error: No column specified. \n")
     return(NULL)
   } else if (!col %in% colnames(rowData(se))) {
-    cat(paste0("Error: The column speiciifed: ", col, " doesn't not exist. Valid columns in rowData are ", colnames(rowData(se))))
+    print(paste0("Error: The column speiciifed: ", col, " doesn't not exist. Valid columns in rowData are ", paste0(colnames(rowData(se)), collapse = ", ")))
     return(NULL)
   }
   geneList <- rowData(de_result_updated)[[col]]
