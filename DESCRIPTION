@@ -19,6 +19,7 @@ Imports:
     fdrtool,
     ggplot2,
     ggrepel,
+    grid,
     httr,
     limma,
     magrittr,
