@@ -77,7 +77,7 @@ readQuantTable <- function(quant_table_path, type = "TMT", level=NULL, log2trans
 }
 
 # internal function to read experiment annotation file
-readExpDesign <- function(exp_anno_path, type = "TMT", lfq_type="Intensity") {
+readExpDesign <- function(exp_anno_path, type = "TMT", lfq_type="Intensity", lowercase=F) {
   temp_df <- read.table(exp_anno_path, header = T, sep = "\t", stringsAsFactors = F)
   if (type == "TMT") {
     if (ncol(temp_df) == 1) {
@@ -98,7 +98,9 @@ readExpDesign <- function(exp_anno_path, type = "TMT", lfq_type="Intensity") {
     }
 
     # change it to lower case
-    colnames(temp_df) <- tolower(colnames(temp_df))
+    if (lowercase) {
+      colnames(temp_df) <- tolower(colnames(temp_df))
+    }
     # to support - (dash) or name starts with number in condition column
     temp_df$condition <- make.names(temp_df$condition)
     # validate(need(try(test_TMT_annotation(temp_df)),
