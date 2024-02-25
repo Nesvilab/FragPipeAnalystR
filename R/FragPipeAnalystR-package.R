@@ -8,6 +8,8 @@
 #' @export colData<-
 #' @export rowData
 #' @export rowData<-
+#' @export metadata
+#' @export metadata<-
 #' @importFrom cmapR GCT
 #' @importFrom cmapR ids
 #' @importFrom cmapR mat
