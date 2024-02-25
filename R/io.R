@@ -157,11 +157,17 @@ readExpDesign <- function(exp_anno_path, type = "TMT", lfq_type="Intensity", low
 # - experiment annotation file
 #' @export
 make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", level = NULL, exp_type=NULL,
-                               log2transform = F, lfq_type = "Intensity") {
+                               log2transform = NULL, lfq_type = "Intensity") {
   if (type == "TMT" & is.null(level)) {
     level <- "gene"
   } else if (is.null(level)) {
     level <- "protein"
+  }
+
+  if (type == "DIA" & is.null(log2transform)) {
+    log2transform <- T
+  } else if (is.null(level)) {
+    llog2transform <- F
   }
 
   if (!level %in% c("gene", "protein", "peptide")) {
