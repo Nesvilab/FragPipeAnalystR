@@ -2,6 +2,12 @@
 "_PACKAGE"
 
 ## usethis namespace: start
+#' @export assay
+#' @export assay<-
+#' @export colData
+#' @export colData<-
+#' @export rowData
+#' @export rowData<-
 #' @importFrom cmapR GCT
 #' @importFrom cmapR ids
 #' @importFrom cmapR mat
@@ -57,6 +63,7 @@
 #' @importFrom limma topTable
 #' @importFrom magrittr %>%
 #' @importFrom matrixStats colMedians
+#' @importFrom MSnbase MSnSet
 #' @importFrom plotly add_trace
 #' @importFrom plotly layout
 #' @importFrom plotly plot_ly
