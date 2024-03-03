@@ -6,10 +6,12 @@
 #' @export assay<-
 #' @export colData
 #' @export colData<-
-#' @export rowData
-#' @export rowData<-
+#' @export Heatmap
+#' @export HeatmapAnnotation
 #' @export metadata
 #' @export metadata<-
+#' @export rowData
+#' @export rowData<-
 #' @importFrom cmapR GCT
 #' @importFrom cmapR ids
 #' @importFrom cmapR mat
@@ -19,6 +21,7 @@
 #' @importFrom ComplexHeatmap Heatmap
 #' @importFrom ComplexHeatmap HeatmapAnnotation
 #' @importFrom ComplexHeatmap row_order
+#' @importFrom ConsensusClusterPlus ConsensusClusterPlus
 #' @importFrom dplyr all_of
 #' @importFrom dplyr arrange
 #' @importFrom dplyr filter
@@ -74,6 +77,11 @@
 #' @importFrom readr parse_factor
 #' @importFrom S4Vectors metadata
 #' @importFrom S4Vectors metadata<-
+#' @importFrom SNFtool affinityMatrix
+#' @importFrom SNFtool dist2
+#' @importFrom SNFtool SNF
+#' @importFrom SNFtool spectralClustering
+#' @importFrom SNFtool standardNormalization
 #' @importFrom stringr str_count
 #' @importFrom SummarizedExperiment assay
 #' @importFrom SummarizedExperiment assay<-
