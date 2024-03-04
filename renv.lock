@@ -32,6 +32,20 @@
     "Version": "3.17"
   },
   "Packages": {
+    "ALL": {
+      "Package": "ALL",
+      "Version": "1.42.0",
+      "Source": "Bioconductor",
+      "git_url": "https://git.bioconductor.org/packages/ALL",
+      "git_branch": "RELEASE_3_17",
+      "git_last_commit": "38b34b0",
+      "git_last_commit_date": "2023-04-25",
+      "Requirements": [
+        "Biobase",
+        "R"
+      ],
+      "Hash": "a3120bdd3f4d2a51aa59d989eb85d18f"
+    },
     "AnnotationDbi": {
       "Package": "AnnotationDbi",
       "Version": "1.62.2",
@@ -239,6 +253,24 @@
       ],
       "Hash": "e40659423f418fdb232649155f3cfac1"
     },
+    "ConsensusClusterPlus": {
+      "Package": "ConsensusClusterPlus",
+      "Version": "1.64.0",
+      "Source": "Bioconductor",
+      "git_url": "https://git.bioconductor.org/packages/ConsensusClusterPlus",
+      "git_branch": "RELEASE_3_17",
+      "git_last_commit": "5758a12",
+      "git_last_commit_date": "2023-04-25",
+      "Requirements": [
+        "ALL",
+        "Biobase",
+        "cluster",
+        "graphics",
+        "stats",
+        "utils"
+      ],
+      "Hash": "b04965b1cfcad6e05e48cc3c94563480"
+    },
     "DBI": {
       "Package": "DBI",
       "Version": "1.1.3",
@@ -295,6 +327,16 @@
         "stats4"
       ],
       "Hash": "ef6ff3e15ce624118e6cf8151e58e38c"
+    },
+    "ExPosition": {
+      "Package": "ExPosition",
+      "Version": "2.8.23",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Requirements": [
+        "prettyGraphs"
+      ],
+      "Hash": "1043d569b263acf5fb7c9f0acff65158"
     },
     "GO.db": {
       "Package": "GO.db",
@@ -882,6 +924,17 @@
       ],
       "Hash": "338207894998073e7823706f886a1386"
     },
+    "SNFtool": {
+      "Package": "SNFtool",
+      "Version": "2.3.1",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Requirements": [
+        "ExPosition",
+        "alluvial"
+      ],
+      "Hash": "c554cd4eda0a6bf47585932a608b3727"
+    },
     "SummarizedExperiment": {
       "Package": "SummarizedExperiment",
       "Version": "1.30.2",
@@ -991,6 +1044,13 @@
         "zlibbioc"
       ],
       "Hash": "283c9a759c6592e2fdac1f7b83ab9442"
+    },
+    "alluvial": {
+      "Package": "alluvial",
+      "Version": "0.1-2",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "ae1e61b8a3542a11600df419c813093f"
     },
     "ape": {
       "Package": "ape",
@@ -2942,6 +3002,13 @@
         "stats"
       ],
       "Hash": "b730f86674105ef376e99152aa5226ae"
+    },
+    "prettyGraphs": {
+      "Package": "prettyGraphs",
+      "Version": "2.1.6",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "fdcd9a0d2fc2f3b38c836cb433f2f5b2"
     },
     "prettyunits": {
       "Package": "prettyunits",
