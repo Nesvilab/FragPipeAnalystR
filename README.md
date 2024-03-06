@@ -4,7 +4,7 @@ R package for FragPipe downstream analysis
 
 ## Installation
 
-We recommend to use [rev](https://rstudio.github.io/renv/index.html) for managing your R enrironment dependencies
+We recommend to use [renv](https://rstudio.github.io/renv/index.html) for managing your R enrironment dependencies
 
 ``` r
 renv::install("bioc::ComplexHeatmap")
