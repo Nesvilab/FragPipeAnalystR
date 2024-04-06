@@ -170,7 +170,7 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
     llog2transform <- F
   }
 
-  if (!level %in% c("gene", "protein", "peptide")) {
+  if (!level %in% c("gene", "protein", "peptide", "glycan")) {
     cat(paste0("The specified level: ", level, " is not a valid level. Available levels are gene, protein, and peptide.\n"))
     return(NULL)
   }
@@ -282,6 +282,12 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
       selected_cols <- which(!(cols %in% interest_cols))
     } else if (level == "peptide" | level == "site") {
       interest_cols <- c("Index", "Gene", "Peptide", "NumberPSM", "ProteinID", "SequenceWindow", "MaxPepProb", "ReferenceIntensity", "name", "ID")
+      data_unique <- data_unique[, colnames(data_unique) %in% c(interest_cols, overlapped_samples)]
+      temp_exp_design <- temp_exp_design[temp_exp_design$label %in% overlapped_samples, ]
+      cols <- colnames(data_unique)
+      selected_cols <- which(!(cols %in% interest_cols))
+    } else {
+      interest_cols <- c("Index", "Gene", "ProteinID", "Peptide", "SequenceWindow", "Start", "End", "MaxPepProb", "ReferenceIntensity", "name", "ID")
       data_unique <- data_unique[, colnames(data_unique) %in% c(interest_cols, overlapped_samples)]
       temp_exp_design <- temp_exp_design[temp_exp_design$label %in% overlapped_samples, ]
       cols <- colnames(data_unique)
