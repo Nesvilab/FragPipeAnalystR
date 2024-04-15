@@ -28,7 +28,7 @@ make.unique.2 <- function(x, sep = ".") {
 }
 
 # internal function to read quantification table
-readQuantTable <- function(quant_table_path, type = "TMT", level=NULL, log2transform = F) {
+readQuantTable <- function(quant_table_path, type = "TMT", level=NULL, log2transform = F, exp_type=NULL) {
   temp_data <- read.table(quant_table_path,
     header = TRUE,
     fill = TRUE, # to fill any missing data
@@ -53,7 +53,9 @@ readQuantTable <- function(quant_table_path, type = "TMT", level=NULL, log2trans
       # validate(fragpipe_input_test(temp_data))
       # remove contam
       temp_data <- temp_data[!grepl("contam", temp_data$Protein),]
-      temp_data$Index <- paste0(temp_data$`Protein ID`, "_", temp_data$`Peptide Sequence`)
+      if (is.null(exp_type)) {
+        temp_data$Index <- paste0(temp_data$`Protein ID`, "_", temp_data$`Peptide Sequence`)
+      }
     } else {
       # handle - (dash) in experiment column
       colnames(temp_data) <- gsub("-", ".", colnames(temp_data))
@@ -175,7 +177,7 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
     return(NULL)
   }
 
-  quant_table <- readQuantTable(quant_table_path, type = type, level=level)
+  quant_table <- readQuantTable(quant_table_path, type = type, level=level, exp_type=exp_type)
   exp_design <- readExpDesign(exp_anno_path, type = type, lfq_type = lfq_type)
   if (type == "LFQ") {
     if (level != "peptide") {
@@ -215,12 +217,12 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
         lfq_columns <- setdiff(lfq_columns, grep("Total Intensity", colnames(data_unique)))
         lfq_columns <- setdiff(lfq_columns, grep("Unique Intensity", colnames(data_unique)))
       } else if (lfq_type == "MaxLFQ") {
-        lfq_columns<-grep("MaxLFQ", colnames(data_unique))
+        lfq_columns <- grep("MaxLFQ", colnames(data_unique))
         if (length(lfq_columns) == 0) {
           stop(safeError("No MaxLFQ column available. Please make sure your files have MaxLFQ intensity columns."))
         }
       } else if (lfq_type == "Spectral Count") {
-        lfq_columns<-grep("Spectral", colnames(data_unique))
+        lfq_columns <- grep("Spectral", colnames(data_unique))
         lfq_columns <- setdiff(lfq_columns, grep("Total Spectral Count", colnames(data_unique)))
         lfq_columns <- setdiff(lfq_columns, grep("Unique Spectral Count", colnames(data_unique)))
       }
