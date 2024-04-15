@@ -6,7 +6,7 @@ output:
 ---
 
 ```{r setup}
-library(FragPipeR)
+library(FragPipeAnalystR)
 ```
 
 ## Introduction

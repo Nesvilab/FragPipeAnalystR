@@ -4,7 +4,7 @@ R package for FragPipe downstream analysis
 
 ## Installation
 
-We recommend to use [renv](https://rstudio.github.io/renv/index.html) for managing your R enrironment dependencies
+We recommend to use [renv](https://rstudio.github.io/renv/index.html) for managing your R environment dependencies
 
 ``` r
 renv::install("bioc::ComplexHeatmap")
@@ -13,7 +13,7 @@ renv::install("bioc::MSnbase")
 renv::install("bioc::SummarizedExperiment")
 renv::install("bioc::cmapR")
 renv::install("bioc::ConsensusClusterPlus")
-renv::install("Nesvilab/FragPipeR")
+renv::install("Nesvilab/FragPipeAnalystR")
 ```
 
 ## Example

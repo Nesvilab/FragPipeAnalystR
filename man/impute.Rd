@@ -35,7 +35,7 @@ An imputed SummarizedExperiment object.
 }
 \examples{
 # Load example
-data("ccrcc", package = "FragPipeR")
+data("ccrcc", package = "FragPipeAnalystR")
 ccrcc_impute <- impute(ccrcc, "knn")
 
 }

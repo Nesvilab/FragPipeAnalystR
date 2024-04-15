@@ -1,5 +1,5 @@
 ---
-title: "FragPipeR Tutorial"
+title: "FragPipeAnalystR Tutorial"
 output:
   html_document:
     keep_md: yes
@@ -7,13 +7,13 @@ output:
 
 # Introduction
 
-FragPipeR is a R package intended for FragPipe downstream analysis. We also make it compatible with the result obtained from FragPipe-Analyst. Users are able to reproduce and customize the plots generated in FragPipe-Analyst.
+FragPipeAnalystR is a R package intended for FragPipe downstream analysis. We also make it compatible with the result obtained from FragPipe-Analyst. Users are able to reproduce and customize the plots generated in FragPipe-Analyst.
 
 ## Quick Start Example
 
 ```r
-library(FragPipeR)
-data("ccrcc", package = "FragPipeR")
+library(FragPipeAnalystR)
+data("ccrcc", package = "FragPipeAnalystR")
 ```
 
 
