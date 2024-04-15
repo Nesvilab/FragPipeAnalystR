@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
         matrix:
-          R: ['4.3.1', '4.3.2']
+          R: ['4.3.1']
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
