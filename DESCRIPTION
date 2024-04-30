@@ -20,6 +20,7 @@ Imports:
     fdrtool,
     ggplot2,
     ggrepel,
+    grDevices,
     grid,
     httr,
     limma,
