@@ -16,6 +16,17 @@ MD_normalization <- function(se) {
 }
 
 #' @export
+VSN_normalization <- function(se) {
+  assertthat::assert_that(inherits(se, "SummarizedExperiment"))
+  data <- assay(se)
+  if (metadata(se)$level %in% c("LFQ", "DIA")) {
+    vsn.fit <- vsn::vsnMatrix(2 ^ assay(se))
+    assay(se) <- vsn::predict(vsn.fit, 2 ^ assay(se))
+  }
+  return(se)
+}
+
+#' @export
 PTM_normalization <- function(ptm_se, se, print_progress=F) {
   pprot <- gsub("_.*", "", rowData(ptm_se)$Index)
   inter_prot <- intersect(pprot, rowData(se)$Index)

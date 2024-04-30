@@ -14,6 +14,9 @@ renv::install("bioc::SummarizedExperiment")
 renv::install("bioc::cmapR")
 renv::install("bioc::ConsensusClusterPlus")
 renv::install("Nesvilab/FragPipeAnalystR")
+
+# optional
+renv::install("nicolerg/ssGSEA2")
 ```
 
 ## Example
