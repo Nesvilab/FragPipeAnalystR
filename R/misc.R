@@ -194,3 +194,60 @@ plot_feature <- function(se, protein, type="boxplot", id="label", interactive=F)
   }
   return(p)
 }
+
+#' @export
+plot_feature_numbers <- function(se, exp=NULL, feature="Proteins") {
+  # Show error if input is not the required classes
+  assertthat::assert_that(inherits(se, "SummarizedExperiment"))
+
+  if (is.null(exp)) {
+    exp <- metadata(se)$exp
+  }
+
+  if (exp == "TMT") {
+    assertthat::assert_that(inherits(se, "SummarizedExperiment"))
+    unique_plexes <- unique(colData(se)$plex)
+    prot_v <- c()
+    for(i in 1:length(unique_plexes)){
+      n_prot <- assay(se[, se$plex == unique_plexes[i]]) %>%
+        data.frame() %>%
+        filter(if_all(everything(), ~!is.na(.))) %>%
+        nrow()
+      prot_v <- c(prot_v, n_prot)
+    }
+    df_prot <- data.frame(plex=factor(unique_plexes), num_protein=prot_v)
+    p <- ggplot(df_prot, aes(x = plex, y = num_protein)) +
+      geom_bar(stat="identity") +
+      labs(title = paste0("Number of ", feature , " across Plex Sets"),
+           x = "Plex", y = paste0("Number of ", feature)) +
+      theme_bw() +
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
+            axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  } else {
+    # Make a binary long data.frame (1 = valid value, 0 = missing value)
+    df <- assay(se) %>%
+      data.frame(check.names = F) %>%
+      rownames_to_column() %>%
+      gather(ID, bin, -rowname) %>%
+      mutate(bin = ifelse(is.na(bin), 0, 1))
+
+
+    # Summarize the number of proteins identified
+    # per sample and generate a barplot
+    stat <- df %>%
+      group_by(ID) %>%
+      summarize(n = n(), sum = sum(bin)) %>%
+      left_join(., data.frame(colData(se)), by = c("ID"="label"))
+
+    p <- ggplot(stat, aes(x = sample_name, y = sum, fill = condition)) +
+      geom_col() +
+      labs(title = paste0("Number of ", feature, " per Sample (Total Number: ", dim(assay(se))[1], ")"),
+           x = "", y = paste0("Number of ", feature)) +
+      theme_bw() +
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
+            axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  }
+  return (p)
+}
