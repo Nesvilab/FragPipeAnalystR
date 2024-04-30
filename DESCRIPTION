@@ -36,7 +36,8 @@ Imports:
     stringr,
     SummarizedExperiment,
     tibble,
-    tidyr
+    tidyr,
+    vsn
 Suggests: 
     clusterProfiler,
     devtools,

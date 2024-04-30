@@ -95,5 +95,7 @@
 #' @importFrom tidyr gather
 #' @importFrom tidyr spread
 #' @importFrom tidyr unite
+#' @importFrom vsn predict
+#' @importFrom vsn vsnMatrix
 ## usethis namespace: end
 NULL
