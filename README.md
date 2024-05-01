@@ -48,7 +48,7 @@ plot_correlation_heatmap(ccrcc)
 plot_feature_numbers(ccrcc)
 ```
 
-![feature bar plot](ignettes/tutorial_files/figure-html/unnamed-chunk-5-1.png)
+![feature bar plot](vignettes/tutorial_files/figure-html/unnamed-chunk-5-1.png)
 
 
 ## Developer guide
