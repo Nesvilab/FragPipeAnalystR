@@ -44,6 +44,12 @@ plot_correlation_heatmap(ccrcc)
 
 ![correlation heatmap](vignettes/tutorial_files/figure-html/unnamed-chunk-3-1.png)
 
+```
+plot_feature_numbers(ccrcc)
+```
+
+![feature bar plot](ignettes/tutorial_files/figure-html/unnamed-chunk-5-1.png)
+
 
 ## Developer guide
 - Start project `renv::init()`:

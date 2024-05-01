@@ -12,17 +12,25 @@ FragPipeAnalystR is a R package intended for FragPipe downstream analysis. We al
 ## Quick Start Example
 ``` {r include=T, warning=F}
 library(FragPipeAnalystR)
-data("ccrcc", package = "FragPipeAnalyst")
+data("ccrcc", package = "FragPipeAnalystR")
 ```
 
 ``` {r include=T, warning=F}
-plot_pca(ccrcc, n=500, ID_col="label", exp="TMT")
+plot_pca(ccrcc)
 ```
 
 ``` {r include=T, warning=F}
-plot_correlation_heatmap(ccrcc, indicate="condition", exp="TMT")
+plot_correlation_heatmap(ccrcc)
 ```
 
 ``` {r include=T, warning=F}
 plot_missval_heatmap(ccrcc)
+```
+
+``` {r include=T, warning=F}
+plot_feature_numbers(ccrcc)
+```
+
+``` {r include=T, warning=F}
+sessionInfo()
 ```
