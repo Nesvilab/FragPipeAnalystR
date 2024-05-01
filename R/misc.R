@@ -206,6 +206,7 @@ plot_feature_numbers <- function(se, exp=NULL, feature="Proteins") {
 
   if (exp == "TMT") {
     unique_plexes <- unique(colData(se)$plex)
+    n_plex <- length(unique_plexes)
     prot_v <- c()
     for(i in 1:length(unique_plexes)){
       n_prot <- assay(se[, se$plex == unique_plexes[i]]) %>%
@@ -214,9 +215,14 @@ plot_feature_numbers <- function(se, exp=NULL, feature="Proteins") {
         nrow()
       prot_v <- c(prot_v, n_prot)
     }
-    df_prot <- data.frame(plex=factor(unique_plexes), num_protein=prot_v)
-    p <- ggplot(df_prot, aes(x = plex, y = num_protein)) +
-      geom_bar(stat="identity") +
+    prot_c <- nrow(na.omit(assay(se)))
+    df_prot <- data.frame(plex=factor(rep(unique_plexes,2)),
+                          num_protein=c(prot_v-prot_c,rep(prot_c,n_plex)),
+                          Status=c(rep("Plex-wise",n_plex),rep("Project-wise",n_plex)))
+    p <- ggplot(df_prot, aes(x = plex, y = num_protein, fill = Status)) +
+      geom_bar(stat="identity", width = 0.85, position = "stack") +
+      scale_fill_manual(values = c("Plex-wise"="#75E6DA","Project-wise"="#189AB4")) +
+      scale_y_continuous(expand = c(0,0)) +
       labs(title = paste0("Number of ", feature , " across Plex Sets"),
            x = "Plex", y = paste0("Number of ", feature)) +
       theme_bw() +
