@@ -39,7 +39,7 @@ plot_missval_heatmap(ccrcc)
 ![missing value heatmap](vignettes/tutorial_files/figure-html/unnamed-chunk-4-1.png)
 
 ```
-plot_correlation_heatmap(ccrcc, indicate="condition", exp="TMT")
+plot_correlation_heatmap(ccrcc)
 ```
 
 ![correlation heatmap](vignettes/tutorial_files/figure-html/unnamed-chunk-3-1.png)
