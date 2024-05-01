@@ -201,7 +201,7 @@ plot_feature_numbers <- function(se, exp=NULL, feature="Proteins") {
   assertthat::assert_that(inherits(se, "SummarizedExperiment"))
 
   if (is.null(exp)) {
-    exp <- metadata(se)$exp
+    exp <- metadata(se)$exp_type
   }
 
   if (exp == "TMT") {
