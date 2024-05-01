@@ -19,7 +19,7 @@ MD_normalization <- function(se) {
 VSN_normalization <- function(se) {
   assertthat::assert_that(inherits(se, "SummarizedExperiment"))
   data <- assay(se)
-  if (metadata(se)$exp_type %in% c("LFQ", "DIA")) {
+  if (metadata(se)$exp %in% c("LFQ", "DIA")) {
     vsn.fit <- vsn::vsnMatrix(2 ^ assay(se))
     assay(se) <- vsn::predict(vsn.fit, 2 ^ assay(se))
   }
