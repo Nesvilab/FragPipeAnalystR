@@ -27,7 +27,7 @@ data("ccrcc", package = "FragPipeAnalystR")
 ```
 
 ```
-plot_pca(ccrcc, n=500, ID_col="label", exp="TMT")
+plot_pca(ccrcc)
 ```
 
 ![PCA](vignettes/tutorial_files/figure-html/unnamed-chunk-2-1.png)
