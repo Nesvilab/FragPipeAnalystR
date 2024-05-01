@@ -329,13 +329,6 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
 #' Sets the delimiter separating the feature names within one protein group.
 #' @return A data.frame with the additional variables
 #' "name" and "ID" containing unique names and identifiers, respectively.
-#' @examples
-#' # Load example
-#' data <- UbiLength
-#'
-#' # Check colnames and pick the appropriate columns
-#' colnames(data)
-#' data_unique <- make_unique(data, "Gene.names", "Protein.IDs", delim = ";")
 #' @export
 make_unique <- function(proteins, names, ids, delim = ";") {
   # Show error if inputs are not the required classes
@@ -404,16 +397,6 @@ make_unique <- function(proteins, names, ids, delim = ";") {
 #' @param level which level of the quantification table summarized at. For example, protein or peptide
 #' @return A SummarizedExperiment object
 #' with log2-transformed values.
-#' @examples
-#' # Load example
-#' data <- UbiLength
-#' data <- data[data$Reverse != "+" & data$Potential.contaminant != "+", ]
-#' data_unique <- make_unique(data, "Gene.names", "Protein.IDs", delim = ";")
-#'
-#' # Make SummarizedExperiment
-#' columns <- grep("LFQ.", colnames(data_unique))
-#' exp_design <- UbiLength_ExpDesign
-#' se <- make_se(data_unique, columns, exp_design)
 #' @export
 make_se_customized <- function(proteins_unique, columns, expdesign, log2transform = F, exp="LFQ", lfq_type=NULL,
                                level=NULL, exp_type=NULL) {

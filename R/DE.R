@@ -388,25 +388,6 @@ test_diff <- function(se, type = c("control", "all", "manual"),
 #' Sets the threshold for the log2 fold change.
 #' @return A SummarizedExperiment object
 #' annotated with logical columns indicating significant proteins.
-#' @examples
-#' # Load example
-#' data <- UbiLength
-#' data <- data[data$Reverse != "+" & data$Potential.contaminant != "+", ]
-#' data_unique <- make_unique(data, "Gene.names", "Protein.IDs", delim = ";")
-#'
-#' # Make SummarizedExperiment
-#' columns <- grep("LFQ.", colnames(data_unique))
-#' exp_design <- UbiLength_ExpDesign
-#' se <- make_se(data_unique, columns, exp_design)
-#'
-#' # Filter, normalize and impute missing values
-#' filt <- filter_missval(se, thr = 0)
-#' norm <- normalize_vsn(filt)
-#' imputed <- impute(norm, fun = "MinProb", q = 0.01)
-#'
-#' # Test for differentially expressed proteins
-#' diff <- test_diff(imputed, "control", "Ctrl")
-#' dep <- add_rejections(diff, alpha = 0.05, lfc = 1)
 #' @export
 add_rejections <- function(diff, alpha = 0.05, lfc = 1) {
   # Show error if inputs are not the required classes

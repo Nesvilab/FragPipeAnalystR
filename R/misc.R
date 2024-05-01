@@ -205,7 +205,6 @@ plot_feature_numbers <- function(se, exp=NULL, feature="Proteins") {
   }
 
   if (exp == "TMT") {
-    assertthat::assert_that(inherits(se, "SummarizedExperiment"))
     unique_plexes <- unique(colData(se)$plex)
     prot_v <- c()
     for(i in 1:length(unique_plexes)){
