@@ -60,20 +60,32 @@ coef_variation <- function(x) {
 }
 
 #' @export
-plot_feature <- function(se, protein, type="boxplot", id="label", interactive=F) {
+plot_feature <- function(se, protein, index=NULL,
+                         type="boxplot", id="label", interactive=F) {
   assertthat::assert_that(inherits(se, "SummarizedExperiment"),
                           is.character(protein),
                           is.character(type))
-  subset <- se[protein]
+  if (is.null(index)) {
+    subset <- se[protein]
+    df_reps <- data.frame(assay(subset), check.names = F) %>%
+      rownames_to_column() %>%
+      gather(ID, val, -rowname) %>%
+      left_join(., data.frame(colData(subset)), by = c("ID"=id))
 
-  df_reps <- data.frame(assay(subset), check.names = F) %>%
-    rownames_to_column() %>%
-    gather(ID, val, -rowname) %>%
-    left_join(., data.frame(colData(subset)), by = c("ID"=id))
+    df_reps$rowname <- parse_factor(as.character(df_reps$rowname), levels = protein)
+  } else {
+    subset <- se[rowData(se)[,index] %in% protein,]
+    df_reps <- data.frame(assay(subset), check.names = F) %>%
+      rownames_to_column() %>%
+      gather(ID, val, -rowname) %>%
+      left_join(., data.frame(colData(subset)), by = c("ID"=id)) %>%
+      left_join(., data.frame(rowData(subset)[,c("Index", index)]), by = c("rowname"="Index"))
+    df_reps$rowname <- parse_factor(as.character(df_reps[,index]), levels = protein)
+  }
 
-  df_reps$rowname <- parse_factor(as.character(df_reps$rowname), levels = protein)
 
-  df_CI<- df_reps %>%
+
+  df_CI <- df_reps %>%
     group_by(condition, rowname) %>%
     summarize(mean = mean(val, na.rm = TRUE),
               sd = sd(val, na.rm = TRUE),
