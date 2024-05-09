@@ -1,5 +1,5 @@
 ---
-title: "FragPipeAnalystR Tutorial"
+title: "FragPipeAnalystR Get Started Tutorial"
 output:
   html_document:
     keep_md: yes
@@ -43,6 +43,21 @@ plot_feature_numbers(ccrcc)
 ```
 
 ![](tutorial_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
+
+
+```r
+plot_feature(ccrcc, c("CA9", "AHNAK2", "NDUFV2", "PIGR"))
+```
+
+![](tutorial_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
+
+
+```r
+# note that this example dataset has the DE result added already
+plot_volcano(ccrcc, "Tumor_vs_Normal")
+```
+
+![](tutorial_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
 
 
 ```r
