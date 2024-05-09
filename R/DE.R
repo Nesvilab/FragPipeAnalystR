@@ -575,8 +575,9 @@ plot_volcano <- function(dep, contrast, label_size = 3,
       title = contrast,
       x = expression(log[2] ~ "Fold change")
     ) +
-    theme_DEP1() +
-    theme(legend.position = "none") +
+    theme_bw() +
+    theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+         panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"), legend.position = "none") +
     scale_color_manual(values = c("TRUE" = "black", "FALSE" = "grey"))
   if (add_names) {
     p <- p + ggrepel::geom_text_repel(

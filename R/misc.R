@@ -163,8 +163,10 @@ plot_feature <- function(se, protein, index=NULL,
           labs(
             y = expression(log[2]~"Intensity")) +
           facet_wrap(~rowname) +
-          theme(axis.title.x = element_blank()) +
-          theme_bw()
+          theme_bw() +
+          theme(axis.title.x = element_blank(),
+                panel.border = element_blank(), panel.grid.major = element_blank(),
+                panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
       } else {
         p<-ggplot(df_reps, aes(condition, val))+
           geom_violin(fill="grey90", scale = "width",
@@ -177,8 +179,10 @@ plot_feature <- function(se, protein, index=NULL,
             col = "Replicates") +
           facet_wrap(~rowname) +
           scale_color_brewer(palette = "Dark2") +
-          theme(axis.title.x = element_blank()) +
-          theme_bw()
+          theme_bw() +
+          theme(axis.title.x = element_blank(),
+                panel.border = element_blank(), panel.grid.major = element_blank(),
+                panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
       }
     } else if(type=="boxplot") {
       if (max(df_reps$replicate) == 1){
@@ -187,8 +191,10 @@ plot_feature <- function(se, protein, index=NULL,
           geom_jitter(size = 3, position = position_dodge(width=0.3)) +
           labs(y = expression(log[2]~"Intensity")) +
           facet_wrap(~rowname) +
-          theme(axis.title.x = element_blank()) +
-          theme_bw()
+          theme_bw() +
+          theme(axis.title.x = element_blank(),
+                panel.border = element_blank(), panel.grid.major = element_blank(),
+                panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
       } else {
         p <- ggplot(df_reps, aes(condition, val))+
           geom_boxplot()+
@@ -199,8 +205,10 @@ plot_feature <- function(se, protein, index=NULL,
             col = "Replicates") +
           facet_wrap(~rowname) +
           scale_color_brewer(palette = "Dark2") +
-          theme(axis.title.x = element_blank()) +
-          theme_bw()
+          theme_bw() +
+          theme(axis.title.x = element_blank(),
+                panel.border = element_blank(), panel.grid.major = element_blank(),
+                panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
       }
     }
   }

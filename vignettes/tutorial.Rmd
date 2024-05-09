@@ -1,5 +1,5 @@
 ---
-title: "FragPipeAnalystR Tutorial"
+title: "FragPipeAnalystR Get Started Tutorial"
 output:
   html_document:
     keep_md: yes
@@ -29,6 +29,15 @@ plot_missval_heatmap(ccrcc)
 
 ``` {r include=T, warning=F}
 plot_feature_numbers(ccrcc)
+```
+
+```{r include=T, warning=F}
+plot_feature(ccrcc, c("CA9", "AHNAK2", "NDUFV2", "PIGR"))
+```
+
+```{r include=T, warning=F}
+# note that this example dataset has the DE result added already
+plot_volcano(ccrcc, "Tumor_vs_Normal")
 ```
 
 ``` {r include=T, warning=F}

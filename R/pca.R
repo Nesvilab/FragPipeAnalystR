@@ -271,7 +271,9 @@ plot_pca <- function(dep, x = 1, y = 2, indicate = c("condition", "replicate"),
         x = paste0("PC", x, ": ", percent[x], "%"),
         y = paste0("PC", y, ": ", percent[y], "%")
       ) +
-      coord_fixed() + theme_bw()
+      theme_bw() +
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 
     if (length(indicate) == 0) {
       p <- p + geom_point(size = point_size)
