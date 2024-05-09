@@ -68,4 +68,5 @@ We recommend to choose 2 here to initialize the project since some dependencies 
 - `devtools::build()` and `devtools::test()` to build and test the package, respectively
 - `devtools::document()` when you add a function
 - `usethis::use_import_from("package name", "function name")` to include dependencies
+- `devtools::build_rmd("./vignettes/*.Rmd")` to build the tutorial Rmd file
 
