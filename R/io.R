@@ -241,7 +241,7 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
       selected_cols <- which(!(cols %in% c("Protein.Group", "Protein.Ids", "Protein.Names", "Genes", "First.Protein.Description", "ID", "name")))
       # TODO: use DIA function
       # test_match_DIA_column_design(data_unique, selected_cols, exp_design)
-      data_se <- make_se_customized(data_unique, selected_cols, exp_design,
+      data_se <- make_se_customized(data_unique, selected_cols, exp_design, level="protein",
                                     log2transform = T, exp="DIA")
       dimnames(data_se) <- list(dimnames(data_se)[[1]], colData(data_se)$sample_name)
       colData(data_se)$label <- colData(data_se)$sample_name
@@ -480,5 +480,10 @@ make_se_customized <- function(proteins_unique, columns, expdesign, log2transfor
     metadata = list("log2transform"=log2transform, "exp"=exp, "lfq_type"=lfq_type,
                     "exp_type"=exp_type, "level"=level)
   )
+
+  if (exp == "DIA" & level == "protein") {
+    rowData(se)$Index <- rowData(se)$Protein.Group
+  }
+
   return(se)
 }
