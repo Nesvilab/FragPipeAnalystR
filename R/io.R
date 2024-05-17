@@ -241,8 +241,8 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
       selected_cols <- which(!(cols %in% c("Protein.Group", "Protein.Ids", "Protein.Names", "Genes", "First.Protein.Description", "ID", "name")))
       # TODO: use DIA function
       # test_match_DIA_column_design(data_unique, selected_cols, exp_design)
-      data_se <- make_se_customized(data_unique, selected_cols, exp_design, level="protein",
-                                    log2transform = T, exp="DIA")
+      data_se <- make_se_customized(data_unique, selected_cols, exp_design,
+                                    log2transform = T, exp="DIA", level="protein")
       dimnames(data_se) <- list(dimnames(data_se)[[1]], colData(data_se)$sample_name)
       colData(data_se)$label <- colData(data_se)$sample_name
     } else { # level == "peptide"
@@ -300,7 +300,7 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
 
     # test_match_tmt_column_design(data_unique, selected_cols, temp_exp_design)
     # TMT-I report is already log2 transformed
-    data_se <- make_se_customized(data_unique, selected_cols, temp_exp_design, exp="TMT")
+    data_se <- make_se_customized(data_unique, selected_cols, temp_exp_design, exp="TMT", level=level)
   }
   supported_types <- c("global", "phospho", "glyco", "acetyl", "ubiquit")
   if (!is.null(exp_type)) {
@@ -481,8 +481,10 @@ make_se_customized <- function(proteins_unique, columns, expdesign, log2transfor
                     "exp_type"=exp_type, "level"=level)
   )
 
-  if (exp == "DIA" & level == "protein") {
-    rowData(se)$Index <- rowData(se)$Protein.Group
+  if (exp == "DIA" & !is.null(level)) {
+    if (level == "protein") {
+      rowData(se)$Index <- rowData(se)$Protein.Group
+    }
   }
 
   return(se)
