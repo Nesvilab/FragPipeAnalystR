@@ -66,7 +66,7 @@ plot_feature <- function(se, protein, index=NULL,
                           is.character(protein),
                           is.character(type))
   if (is.null(index)) {
-    subset <- se[protein]
+    subset <- se[protein,]
     df_reps <- data.frame(assay(subset), check.names = F) %>%
       rownames_to_column() %>%
       gather(ID, val, -rowname) %>%
