@@ -1,0 +1,50 @@
+---
+title: "FragPipeAnalystR DIA Global Proteome"
+output:
+  html_document:
+    keep_md: yes
+---
+
+# Introduction
+
+FragPipeAnalystR is a R package intended for FragPipe downstream analysis. We also make it compatible with the result obtained from FragPipe-Analyst. Users are able to reproduce and customize the plots generated in FragPipe-Analyst.
+
+## CCRCC DIA data
+
+As described in the manuscript, DIA ccRCC data were fetched from [Clark et al. (2019)](https://doi.org/10.1016/j.cell.2019.10.007) and processed via [FragPipe](https://fragpipe.nesvilab.org/). As you will see in the following sections. The result is quite similar to corresponding TMT data.
+``` {r include=T, warning=F}
+library(FragPipeAnalystR)
+ccrcc <- make_se_from_files("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/DIA_4plex/diann-output.pg_matrix.tsv",
+                         "/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/DIA_4plex/experiment_annotation_clean.tsv",
+                         type = "DIA")
+```
+
+``` {r include=T, warning=F}
+plot_pca(ccrcc)
+```
+
+``` {r include=T, warning=F}
+plot_correlation_heatmap(ccrcc)
+```
+
+``` {r include=T, warning=F}
+plot_missval_heatmap(ccrcc)
+```
+
+``` {r include=T, warning=F}
+plot_feature_numbers(ccrcc)
+```
+
+```{r include=T, warning=F}
+plot_feature(ccrcc, c("CA9", "AHNAK2", "NDUFV2", "PIGR"))
+```
+
+```{r include=T, warning=F}
+de_result <- test_limma(ccrcc, type = "all")
+de_result_updated <- add_rejections(de_result)
+plot_volcano(de_result_updated, "Tumor_vs_NAT")
+```
+
+``` {r include=T, warning=F}
+sessionInfo()
+```
