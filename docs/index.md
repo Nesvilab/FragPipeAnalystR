@@ -25,6 +25,8 @@ renv::install("nicolerg/ssGSEA2")
 - [TMT ccRCC protein level analysis](global_TMT_prot_tutorial.html)
 - [DIA ccRCC protein level analysis](global_DIA_prot_tutorial.html)
 
+- [TMT ccRCC phosphosite analysis](phospho_TMT_tutorial.html)
+
 ## Reference
 Analysis and visualization of quantitative proteomics data using FragPipe-Analyst
 Yi Hsiao, Haijian Zhang, Ginny Xiaohe Li, Yamei Deng, Fengchao Yu, Hossein Valipour Kahrood, Joel R. Steele, Ralf B. Schittenhelm, Alexey I. Nesvizhskii
