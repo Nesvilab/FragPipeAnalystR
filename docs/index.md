@@ -21,7 +21,8 @@ renv::install("nicolerg/ssGSEA2")
 
 ## Tutorial
 
-- [LFQ AP-MS protein level analysis](global_LFQ_prot_tutorial.html)
+- [LFQ AP-MS protein level analysis](global_LFQ_prot_tutorial.html) 
+- [TMT ccRCC protein level analysis](global_TMT_prot_tutorial.html)
 - [DIA ccRCC protein level analysis](global_DIA_prot_tutorial.html)
 
 ## Reference

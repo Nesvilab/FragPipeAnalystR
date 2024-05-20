@@ -1,0 +1,48 @@
+---
+title: "FragPipeAnalystR TMT Global Proteome"
+output:
+  html_document:
+    keep_md: yes
+---
+
+# Introduction
+
+FragPipeAnalystR is a R package intended for FragPipe downstream analysis. We also make it compatible with the result obtained from FragPipe-Analyst. Users are able to reproduce and customize the plots generated in FragPipe-Analyst.
+
+## Quick Start Example
+``` {r include=T, warning=F}
+library(FragPipeAnalystR)
+ccrcc <- make_se_from_files("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/TMT_4plex/abundance_protein_MD.tsv",
+                         "/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/TMT_4plex/experiment_annotation_clean.tsv",
+                         type = "TMT", level = "protein")
+```
+
+``` {r include=T, warning=F}
+plot_pca(ccrcc)
+```
+
+``` {r include=T, warning=F}
+plot_correlation_heatmap(ccrcc)
+```
+
+``` {r include=T, warning=F}
+plot_missval_heatmap(ccrcc)
+```
+
+``` {r include=T, warning=F}
+plot_feature_numbers(ccrcc)
+```
+
+```{r include=T, warning=F}
+plot_feature(ccrcc, c("CA9", "AHNAK2", "NDUFV2", "PIGR"), index="Gene")
+```
+
+```{r include=T, warning=F}
+de_result <- test_limma(ccrcc, type = "all")
+de_result_updated <- add_rejections(de_result)
+plot_volcano(de_result_updated, "Tumor_vs_NAT")
+```
+
+``` {r include=T, warning=F}
+sessionInfo()
+```
