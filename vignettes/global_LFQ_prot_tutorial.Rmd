@@ -1,0 +1,63 @@
+---
+title: "FragPipeAnalystR LFQ tutorial"
+output:
+  html_document:
+    keep_md: yes
+---
+
+# Introduction
+
+Here we presented the usage of FragPipeAnalystR to reproduce AP-MS analysis previously demonstrated in the manuscript. Note that in the manuscript, we used the FragPipeAnalyst website, but you could reproduce the same analysis with FragPipeR.
+
+## Reading input files
+``` {r include=T, warning=F}
+library(FragPipeAnalystR)
+se <- make_se_from_files("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/AP-MS/combined_protein.tsv",
+                         "/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/AP-MS/experiment_annotation.tsv",
+                         type = "LFQ", level = "protein")
+```
+
+``` {r include=T, warning=F}
+plot_pca(se)
+```
+
+``` {r include=T, warning=F}
+plot_correlation_heatmap(se)
+```
+
+``` {r include=T, warning=F}
+plot_missval_heatmap(se)
+```
+
+``` {r include=T, warning=F}
+plot_feature_numbers(se)
+```
+
+```{r include=T, warning=F}
+colData(se)$condition
+```
+
+## Imputation
+```{r include=T, warning=F}
+imputed_se <- manual_impute(se)
+```
+
+
+``` {r include=T, warning=F}
+plot_pca(imputed_se)
+```
+
+``` {r include=T, warning=F}
+plot_correlation_heatmap(imputed_se)
+```
+
+## Differential expression analysis
+```{r include=T, warning=F}
+de_result <- test_limma(imputed_se, type = "all")
+de_result_updated <- add_rejections(de_result)
+plot_volcano(de_result_updated, "CCND1_vs_CONTROL")
+```
+
+``` {r include=T, warning=F}
+sessionInfo()
+```
