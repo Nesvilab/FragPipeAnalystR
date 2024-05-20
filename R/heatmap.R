@@ -41,7 +41,7 @@ plot_missval_heatmap <- function(se) {
 #' @export
 plot_correlation_heatmap <- function(dep, significant = FALSE, lower = -1, upper = 1,
                                      pal = "PRGn", pal_rev = FALSE, indicate = NULL,
-                                     font_size = 12, exp = NULL, use="complete.obs",...) {
+                                     font_size = 10, exp = NULL, use="complete.obs",...) {
   if (is.null(exp)) {
     exp <- metadata(dep)$exp
   }
