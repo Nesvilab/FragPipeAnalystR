@@ -1,5 +1,5 @@
 ---
-title: "FragPipeAnalystR DIA Global Proteome"
+title: "FragPipeAnalystR DIA Global Proteome Tutorial"
 output:
   html_document:
     keep_md: yes
@@ -11,7 +11,7 @@ FragPipeAnalystR is a R package intended for FragPipe downstream analysis. We al
 
 ## CCRCC DIA data
 
-As described in the manuscript, DIA ccRCC data were fetched from [Clark et al. (2019)](https://doi.org/10.1016/j.cell.2019.10.007) and processed via FragPipe. As you will see in the following sections. The result is quite similar to corresponding TMT data.
+As described in the manuscript, DIA ccRCC data were fetched from [Clark et al. (2019)](https://doi.org/10.1016/j.cell.2019.10.007) and processed via [FragPipe](https://fragpipe.nesvilab.org/). As you will see in the following sections. The result is quite similar to corresponding TMT data.
 
 ```r
 library(FragPipeAnalystR)
@@ -69,6 +69,21 @@ plot_feature(ccrcc, c("CA9", "AHNAK2", "NDUFV2", "PIGR"))
 
 ![](global_DIA_prot_tutorial_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
 
+## Imputation
+
+
+```r
+imputed <- manual_impute(ccrcc)
+```
+
+
+```r
+plot_pca(imputed)
+```
+
+![](global_DIA_prot_tutorial_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+
+## DE result without imputation
 
 ```r
 de_result <- test_limma(ccrcc, type = "all")
@@ -83,7 +98,24 @@ de_result_updated <- add_rejections(de_result)
 plot_volcano(de_result_updated, "Tumor_vs_NAT")
 ```
 
-![](global_DIA_prot_tutorial_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+![](global_DIA_prot_tutorial_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
+
+## DE result with imputation
+
+```r
+de_result <- test_limma(imputed, type = "all")
+```
+
+```
+## Tested contrasts: Tumor_vs_NAT
+```
+
+```r
+de_result_updated <- add_rejections(de_result)
+plot_volcano(de_result_updated, "Tumor_vs_NAT")
+```
+
+![](global_DIA_prot_tutorial_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
 
 
 ```r
@@ -109,7 +141,7 @@ sessionInfo()
 ## [1] stats     graphics  grDevices datasets  utils     methods   base     
 ## 
 ## other attached packages:
-## [1] FragPipeAnalystR_0.1.4
+## [1] FragPipeAnalystR_0.1.5
 ## 
 ## loaded via a namespace (and not attached):
 ##   [1] bitops_1.0-7                fdrtool_1.2.17             

@@ -1,5 +1,5 @@
 ---
-title: "FragPipeAnalystR DIA Global Proteome"
+title: "FragPipeAnalystR DIA Global Proteome Tutorial"
 output:
   html_document:
     keep_md: yes
@@ -39,8 +39,26 @@ plot_feature_numbers(ccrcc)
 plot_feature(ccrcc, c("CA9", "AHNAK2", "NDUFV2", "PIGR"))
 ```
 
+## Imputation
+
+``` {r include=T, warning=F}
+imputed <- manual_impute(ccrcc)
+```
+
+``` {r include=T, warning=F}
+plot_pca(imputed)
+```
+
+## DE result without imputation
 ```{r include=T, warning=F}
 de_result <- test_limma(ccrcc, type = "all")
+de_result_updated <- add_rejections(de_result)
+plot_volcano(de_result_updated, "Tumor_vs_NAT")
+```
+
+## DE result with imputation
+```{r include=T, warning=F}
+de_result <- test_limma(imputed, type = "all")
 de_result_updated <- add_rejections(de_result)
 plot_volcano(de_result_updated, "Tumor_vs_NAT")
 ```
