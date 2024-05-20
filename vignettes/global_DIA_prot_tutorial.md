@@ -7,11 +7,12 @@ output:
 
 # Introduction
 
-FragPipeAnalystR is a R package intended for FragPipe downstream analysis. We also make it compatible with the result obtained from FragPipe-Analyst. Users are able to reproduce and customize the plots generated in FragPipe-Analyst.
+FragPipeAnalystR is a R package intended for downstream analysis of data generated from [FragPipe](https://fragpipe.nesvilab.org/). Here we demonstrated the utility of FragPipeAnalyst by reanalyzing a clear cell renal cell carcinoma (ccRCC) data-independent acquisition (DIA) data collected by CPTAC.
 
 ## CCRCC DIA data
 
 As described in the manuscript, DIA ccRCC data were fetched from [Clark et al. (2019)](https://doi.org/10.1016/j.cell.2019.10.007) and processed via [FragPipe](https://fragpipe.nesvilab.org/). As you will see in the following sections. The result is quite similar to corresponding TMT data.
+
 
 ```r
 library(FragPipeAnalystR)
@@ -83,6 +84,13 @@ plot_pca(imputed)
 
 ![](global_DIA_prot_tutorial_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
 
+
+```r
+plot_feature(imputed, c("CA9", "AHNAK2", "NDUFV2", "PIGR"))
+```
+
+![](global_DIA_prot_tutorial_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
+
 ## DE result without imputation
 
 ```r
@@ -98,7 +106,7 @@ de_result_updated <- add_rejections(de_result)
 plot_volcano(de_result_updated, "Tumor_vs_NAT")
 ```
 
-![](global_DIA_prot_tutorial_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
+![](global_DIA_prot_tutorial_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
 
 ## DE result with imputation
 
@@ -115,7 +123,9 @@ de_result_updated <- add_rejections(de_result)
 plot_volcano(de_result_updated, "Tumor_vs_NAT")
 ```
 
-![](global_DIA_prot_tutorial_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+![](global_DIA_prot_tutorial_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
+
+One of the differences between this two sets of differential expression analysis is CA9 (Carbonic anhydrase 9) which is a [known marker of clear cell renal cell carcinoma](https://doi.org/10.1016/j.ejca.2010.07.020).
 
 
 ```r
