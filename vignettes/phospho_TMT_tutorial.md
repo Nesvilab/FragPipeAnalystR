@@ -83,6 +83,7 @@ plot_feature(normalized_se, c("P14618_Y148", # PKM_Y146
 ```
 
 ![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+
 ### Boxplot of parent proteins
 
 ``` r
@@ -92,7 +93,6 @@ plot_feature(se, c("P14618",
 ```
 
 ![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
-
 
 
 ## Differential expression (DE) analysis
@@ -134,7 +134,7 @@ plot_volcano(de_result_updated, "Tumor_vs_NAT")
 ![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
 
 ## Enrichment analysis
-One of the key difference between peptide-level analysis of PTMs we demonstrated here and protein level analysis is that PTMs usually act in a site-specific manner. Here, we also provide the way to help users perform enrichment analysis site-specifically through creating the input file you needed for [PTM-SEA](https://doi.org/10.1074/mcp.tir118.000943).
+One of the key difference between peptide-level analysis of PTMs we demonstrated here and protein level analysis is that PTMs usually act in a site-specific manner. Here, we provide the way to help users perform enrichment analysis site-specifically through creating the input file you needed for [PTM-SEA](https://doi.org/10.1074/mcp.tir118.000943).
 
 ``` r
 prepare_PTMSEA(normalized_de_result_updated, "Tumor_vs_NAT_diff", "/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/PTMSEA_new/result.gct")
@@ -190,7 +190,7 @@ You may also select particular gene set of interests. For example, following cod
 
 
 ``` r
-visualize_PTMSEA("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/PTMSEA_result/ccRCC-combined.gct",
+visualize_PTMSEA("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/PTMSEA_new/result/ccRCC-combined.gct",
                                   "Tumor_vs_NAT_diff",
                                   selected_concepts=c("KINASE-PSP_PKCA/PRKCA", "KINASE-PSP_PKCB/PRKCB", "KINASE-PSP_PKCG/PRKCG", "KINASE-PSP_PKCB_iso2/PRKCB", "KINASE-PSP_PKCD/PRKCD", "KINASE-PSP_PKCI/PRKCI", "KINASE-PSP_PKCT/PRKCQ",
                                                       "KINASE-PSP_PKCH/PRKCH", "KINASE-PSP_PKCE/PRKCE", "KINASE-PSP_PKCZ/PRKCZ"))
@@ -201,14 +201,14 @@ visualize_PTMSEA("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result
 ```
 
 ```
-## /Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/PTMSEA_result/ccRCC-combined.gct 603 rows, 1 cols, 7 row descriptors, 0 col descriptors
+## /Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/PTMSEA_new/result/ccRCC-combined.gct 603 rows, 1 cols, 7 row descriptors, 0 col descriptors
 ```
 
 ![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
 
 
 ``` r
-visualize_PTMSEA("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/PTMSEA_result/ccRCC-combined.gct",
+visualize_PTMSEA("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/PTMSEA_new/result/ccRCC-combined.gct",
                  "Tumor_vs_NAT_diff",
                  selected_concepts=c(# "KINASE-PSP_Akt1/AKT1", "KINASE-PSP_Akt3/AKT3", "KINASE-PSP_Akt2/AKT2",
                                      "KINASE-iKiP_AKT3", "KINASE-iKiP_AKT2", "PATH-WP_PI3K-Akt_signaling_pathway", "KINASE-iKiP_AKT1"))
@@ -219,9 +219,44 @@ visualize_PTMSEA("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result
 ```
 
 ```
-## /Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/PTMSEA_result/ccRCC-combined.gct 603 rows, 1 cols, 7 row descriptors, 0 col descriptors
+## /Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/PTMSEA_new/result/ccRCC-combined.gct 603 rows, 1 cols, 7 row descriptors, 0 col descriptors
 ```
 
 ![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-15-1.png)<!-- -->
                                                       
-                                                  
+Alternatively, FragPipeAnalystR also provides ways to generate input and visualization for the [Kinase Library](https://kinase-library.phosphosite.org/). Here is the example of generating the input file:
+
+
+``` r
+prepare_kinome(de_result_updated, "Tumor_vs_NAT_diff", "/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/kinome_new/kinome_input_asterisk.tsv")
+```
+
+
+And here is the result visualization:
+
+``` r
+visualize_kinome("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/kinome_result/enrichment-analysis-result-table.txt")
+```
+
+![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-17-1.png)<!-- -->
+
+
+``` r
+AKT_labels <- c("AKT1", "AKT2", "ATK3")
+visualize_kinome("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/kinome_result/enrichment-analysis-result-table.txt",
+                                  labels=AKT_labels)
+```
+
+![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-18-1.png)<!-- -->
+
+
+``` r
+PKC_labels <- c("PKCI", "PKCH", "PKCT", "PKCZ", "PKCE", "PKCD", "PKCG", "PKCA", "PKCB")
+visualize_kinome("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/kinome_result/enrichment-analysis-result-table.txt", labels=PKC_labels)
+```
+
+![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-19-1.png)<!-- -->
+
+
+
+

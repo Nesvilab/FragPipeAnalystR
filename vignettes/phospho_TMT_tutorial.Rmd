@@ -57,13 +57,13 @@ plot_feature(normalized_se, c("P14618_Y148", # PKM_Y146
                                           "P28482_Y187",
                                           "Q13541_S65"))
 ```
+
 ### Boxplot of parent proteins
 ``` {r, include=T, warning=F}
 plot_feature(se, c("P14618",
                    "P28482",
                    "Q13541"))
 ```
-
 
 
 ## Differential expression (DE) analysis
@@ -85,7 +85,7 @@ plot_volcano(de_result_updated, "Tumor_vs_NAT")
 ```
 
 ## Enrichment analysis
-One of the key difference between peptide-level analysis of PTMs we demonstrated here and protein level analysis is that PTMs usually act in a site-specific manner. Here, we also provide the way to help users perform enrichment analysis site-specifically through creating the input file you needed for [PTM-SEA](https://doi.org/10.1074/mcp.tir118.000943).
+One of the key difference between peptide-level analysis of PTMs we demonstrated here and protein level analysis is that PTMs usually act in a site-specific manner. Here, we provide the way to help users perform enrichment analysis site-specifically through creating the input file you needed for [PTM-SEA](https://doi.org/10.1074/mcp.tir118.000943).
 ``` {r, include=T, warning=F}
 prepare_PTMSEA(normalized_de_result_updated, "Tumor_vs_NAT_diff", "/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/PTMSEA_new/result.gct")
 ```
@@ -120,17 +120,42 @@ visualize_PTMSEA("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result
 You may also select particular gene set of interests. For example, following code snippets demonstrate the result on PKC and AKT protein kinases, respectively.
 
 ``` {r, include=T}
-visualize_PTMSEA("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/PTMSEA_result/ccRCC-combined.gct",
+visualize_PTMSEA("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/PTMSEA_new/result/ccRCC-combined.gct",
                                   "Tumor_vs_NAT_diff",
                                   selected_concepts=c("KINASE-PSP_PKCA/PRKCA", "KINASE-PSP_PKCB/PRKCB", "KINASE-PSP_PKCG/PRKCG", "KINASE-PSP_PKCB_iso2/PRKCB", "KINASE-PSP_PKCD/PRKCD", "KINASE-PSP_PKCI/PRKCI", "KINASE-PSP_PKCT/PRKCQ",
                                                       "KINASE-PSP_PKCH/PRKCH", "KINASE-PSP_PKCE/PRKCE", "KINASE-PSP_PKCZ/PRKCZ"))
 ```
 
 ``` {r, include=T}
-visualize_PTMSEA("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/PTMSEA_result/ccRCC-combined.gct",
+visualize_PTMSEA("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/PTMSEA_new/result/ccRCC-combined.gct",
                  "Tumor_vs_NAT_diff",
                  selected_concepts=c(# "KINASE-PSP_Akt1/AKT1", "KINASE-PSP_Akt3/AKT3", "KINASE-PSP_Akt2/AKT2",
                                      "KINASE-iKiP_AKT3", "KINASE-iKiP_AKT2", "PATH-WP_PI3K-Akt_signaling_pathway", "KINASE-iKiP_AKT1"))
 ```
                                                       
-                                                  
+Alternatively, FragPipeAnalystR also provides ways to generate input and visualization for the [Kinase Library](https://kinase-library.phosphosite.org/). Here is the example of generating the input file:
+
+``` {r, include=T}
+prepare_kinome(de_result_updated, "Tumor_vs_NAT_diff", "/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/kinome_new/kinome_input_asterisk.tsv")
+```
+
+
+And here is the result visualization:
+``` {r, include=T}
+visualize_kinome("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/kinome_result/enrichment-analysis-result-table.txt")
+```
+
+``` {r, include=T}
+AKT_labels <- c("AKT1", "AKT2", "ATK3")
+visualize_kinome("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/kinome_result/enrichment-analysis-result-table.txt",
+                                  labels=AKT_labels)
+```
+
+``` {r, include=T}
+PKC_labels <- c("PKCI", "PKCH", "PKCT", "PKCZ", "PKCE", "PKCD", "PKCG", "PKCA", "PKCB")
+visualize_kinome("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/kinome_result/enrichment-analysis-result-table.txt", labels=PKC_labels)
+```
+
+
+
+
