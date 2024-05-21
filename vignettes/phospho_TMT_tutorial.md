@@ -6,7 +6,7 @@ output:
 ---
 
 
-```r
+``` r
 library(FragPipeAnalystR)
 ```
 
@@ -18,13 +18,12 @@ One of the reasons we created `FragPipeAnalystR` is to support peptide-level ana
 The first step is always the same to read the data. Note that we specify the `level` and `exp_type` here.
 
 
-```r
-library(FragPipeAnalystR)
+``` r
 se <- make_se_from_files("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/TMT_4plex/ratio_protein_MD.tsv", "/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/TMT_4plex/experiment_annotation_clean.tsv", level="protein", type = "TMT")
 ```
 
 
-```r
+``` r
 se_phospho <- make_se_from_files("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/TMT_phospho_4plex/ratio_single-site_MD.tsv", "/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/TMT_4plex/experiment_annotation_clean.tsv", level="peptide", type = "TMT", exp_type="phospho")
 ```
 
@@ -32,7 +31,7 @@ se_phospho <- make_se_from_files("/Users/hsiaoyi/Documents/workspace/FragPipeR_m
 
 Then, you should able to observe the data through various plots supported. For example, the PCA plot 
 
-```r
+``` r
 plot_pca(se_phospho)
 ```
 
@@ -40,7 +39,7 @@ plot_pca(se_phospho)
 
 or heatmap
 
-```r
+``` r
 plot_correlation_heatmap(se_phospho)
 ```
 
@@ -50,7 +49,7 @@ Both of these plots show that protein phosphorylation status of tumor and normal
 
 ## Normalization
 
-```r
+``` r
 normalized_se <- PTM_normalization(se_phospho, se)
 ```
 
@@ -61,13 +60,13 @@ normalized_se <- PTM_normalization(se_phospho, se)
 ## get subpsite
 ```
 
-```r
+``` r
 pca_plot_normalized <- plot_pca(normalized_se, n=0, ID_col="label", exp="TMT", interactive = F)
 ```
 
 ### Boxplot before normalization
 
-```r
+``` r
 plot_feature(se_phospho, c("P14618_Y148", # PKM_Y146
                            "P28482_Y187",
                            "Q13541_S65"))
@@ -77,7 +76,7 @@ plot_feature(se_phospho, c("P14618_Y148", # PKM_Y146
 
 ### Boxplot after normalization
 
-```r
+``` r
 plot_feature(normalized_se, c("P14618_Y148", # PKM_Y146
                                           "P28482_Y187",
                                           "Q13541_S65"))
@@ -86,7 +85,7 @@ plot_feature(normalized_se, c("P14618_Y148", # PKM_Y146
 ![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
 ### Boxplot of parent proteins
 
-```r
+``` r
 plot_feature(se, c("P14618",
                    "P28482",
                    "Q13541"))
@@ -101,7 +100,7 @@ plot_feature(se, c("P14618",
 One of the frequent analysis we do is differential expression analysis to understand the difference between tumor and NAT. It can be performed through following commands:
 
 
-```r
+``` r
 de_result <-test_limma(se_phospho, type = "all")
 ```
 
@@ -109,7 +108,7 @@ de_result <-test_limma(se_phospho, type = "all")
 ## Tested contrasts: Tumor_vs_NAT
 ```
 
-```r
+``` r
 de_result_updated <- add_rejections(de_result)
 plot_volcano(de_result_updated, "Tumor_vs_NAT")
 ```
@@ -119,7 +118,7 @@ plot_volcano(de_result_updated, "Tumor_vs_NAT")
 As you can see, there are many phosphosites upregulated and downregulated in this comparison. This gives a lot of research opportunities. For example, CAK2 (P51636) has been associated with [maintaining kidney cancer malignant](https://pubmed.ncbi.nlm.nih.gov/30288056/). Further investigating this phoshphosite (S36) might help us understand its mechanism. One thing that needs to be noted here is that the abundance of phosphopeptides is usually correlated with its protein abundance, so it might be just because the protein abundance of CAK2 is upregulated in ccRCC. It might be worth to check with the global proteome available as well. 
 
 
-```r
+``` r
 normalized_de_result <- test_limma(normalized_se, type = "all")
 ```
 
@@ -127,7 +126,7 @@ normalized_de_result <- test_limma(normalized_se, type = "all")
 ## Tested contrasts: Tumor_vs_NAT
 ```
 
-```r
+``` r
 normalized_de_result_updated <- add_rejections(normalized_de_result)
 plot_volcano(de_result_updated, "Tumor_vs_NAT")
 ```
@@ -137,7 +136,7 @@ plot_volcano(de_result_updated, "Tumor_vs_NAT")
 ## Enrichment analysis
 One of the key difference between peptide-level analysis of PTMs we demonstrated here and protein level analysis is that PTMs usually act in a site-specific manner. Here, we also provide the way to help users perform enrichment analysis site-specifically through creating the input file you needed for [PTM-SEA](https://doi.org/10.1074/mcp.tir118.000943).
 
-```r
+``` r
 prepare_PTMSEA(normalized_de_result_updated, "Tumor_vs_NAT_diff", "/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/PTMSEA_new/result.gct")
 ```
 
@@ -150,7 +149,7 @@ prepare_PTMSEA(normalized_de_result_updated, "Tumor_vs_NAT_diff", "/Users/hsiaoy
 
 Then, you can run PTM-SEA though [ssGSEA2 R package](https://github.com/nicolerg/ssGSEA2) like this:
 
-```r
+``` r
 library(ssGSEA2)
 res <- run_ssGSEA2("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/PTMSEA_new/result.gct",
                    output.prefix = "ccRCC",
@@ -173,7 +172,7 @@ res <- run_ssGSEA2("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/resu
 and visualize the result through:
 
 
-```r
+``` r
 visualize_PTMSEA("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/PTMSEA_new/result/ccRCC-combined.gct", "Tumor_vs_NAT_diff")
 ```
 
@@ -190,7 +189,7 @@ visualize_PTMSEA("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result
 You may also select particular gene set of interests. For example, following code snippets demonstrate the result on PKC and AKT protein kinases, respectively.
 
 
-```r
+``` r
 visualize_PTMSEA("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/PTMSEA_result/ccRCC-combined.gct",
                                   "Tumor_vs_NAT_diff",
                                   selected_concepts=c("KINASE-PSP_PKCA/PRKCA", "KINASE-PSP_PKCB/PRKCB", "KINASE-PSP_PKCG/PRKCG", "KINASE-PSP_PKCB_iso2/PRKCB", "KINASE-PSP_PKCD/PRKCD", "KINASE-PSP_PKCI/PRKCI", "KINASE-PSP_PKCT/PRKCQ",
@@ -208,7 +207,7 @@ visualize_PTMSEA("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result
 ![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
 
 
-```r
+``` r
 visualize_PTMSEA("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/PTMSEA_result/ccRCC-combined.gct",
                  "Tumor_vs_NAT_diff",
                  selected_concepts=c(# "KINASE-PSP_Akt1/AKT1", "KINASE-PSP_Akt3/AKT3", "KINASE-PSP_Akt2/AKT2",

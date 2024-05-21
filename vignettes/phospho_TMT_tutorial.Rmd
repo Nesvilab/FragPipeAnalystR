@@ -17,7 +17,6 @@ One of the reasons we created `FragPipeAnalystR` is to support peptide-level ana
 The first step is always the same to read the data. Note that we specify the `level` and `exp_type` here.
 
 ```{r, warning=F}
-library(FragPipeAnalystR)
 se <- make_se_from_files("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/TMT_4plex/ratio_protein_MD.tsv", "/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/TMT_4plex/experiment_annotation_clean.tsv", level="protein", type = "TMT")
 ```
 
@@ -92,7 +91,7 @@ prepare_PTMSEA(normalized_de_result_updated, "Tumor_vs_NAT_diff", "/Users/hsiaoy
 ```
 
 Then, you can run PTM-SEA though [ssGSEA2 R package](https://github.com/nicolerg/ssGSEA2) like this:
-``` {r, eval=FALSE, warning=F}
+``` {r, eval=F, warning=F}
 library(ssGSEA2)
 res <- run_ssGSEA2("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/PTMSEA_new/result.gct",
                    output.prefix = "ccRCC",
