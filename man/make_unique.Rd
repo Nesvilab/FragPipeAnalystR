@@ -27,11 +27,3 @@ A data.frame with the additional variables
 \code{make_unique} generates unique identifiers
 for a proteomics dataset based on "name" and "id" columns. (from DEP)
 }
-\examples{
-# Load example
-data <- UbiLength
-
-# Check colnames and pick the appropriate columns
-colnames(data)
-data_unique <- make_unique(data, "Gene.names", "Protein.IDs", delim = ";")
-}
