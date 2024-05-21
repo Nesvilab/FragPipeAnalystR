@@ -39,14 +39,3 @@ with log2-transformed values.
 \code{make_se_customized} creates a SummarizedExperiment object
 based on two data.frames: the protein table and experimental design.
 }
-\examples{
-# Load example
-data <- UbiLength
-data <- data[data$Reverse != "+" & data$Potential.contaminant != "+", ]
-data_unique <- make_unique(data, "Gene.names", "Protein.IDs", delim = ";")
-
-# Make SummarizedExperiment
-columns <- grep("LFQ.", colnames(data_unique))
-exp_design <- UbiLength_ExpDesign
-se <- make_se(data_unique, columns, exp_design)
-}
