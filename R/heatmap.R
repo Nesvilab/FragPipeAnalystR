@@ -1,3 +1,4 @@
+#' Plot missing value heatmap
 #' @export
 plot_missval_heatmap <- function(se) {
   # Show error if input is not the required classes
@@ -38,6 +39,7 @@ plot_missval_heatmap <- function(se) {
   return(draw(ht2, heatmap_legend_side = "top"))
 }
 
+#' Plot correlation heatmap
 #' @export
 plot_correlation_heatmap <- function(dep, significant = FALSE, lower = -1, upper = 1,
                                      pal = "PRGn", pal_rev = FALSE, indicate = NULL,
@@ -197,7 +199,7 @@ plot_correlation_heatmap <- function(dep, significant = FALSE, lower = -1, upper
 }
 
 
-#### Get individual clusters from heatmap
+#' Plot heatmap using differentially expressed features
 #' @export
 get_cluster_heatmap <- function(dep, type = c("contrast", "centered"),
                                 kmeans = FALSE, k = 6,
@@ -454,14 +456,17 @@ get_annotation <- function(dep, indicate) {
   names(anno_col) <- names
   for(i in names) {
     var = anno[[i]] %>% unique() %>% sort()
-    if(length(var) == 1)
+    if(length(var) == 1) {
       cols <- c("black")
-    if(length(var) == 2)
+    } else if(length(var) == 2) {
       cols <- c("orangered", "cornflowerblue")
-    if(length(var) < 7 & length(var) > 2)
+    } else if(length(var) < 7 & length(var) > 2) {
       cols <- RColorBrewer::brewer.pal(length(var), "Pastel1")
-    if(length(var) > 7)
+    } else if(length(var) <= 12) {
       cols <- RColorBrewer::brewer.pal(length(var), "Set3")
+    } else {
+      cols <- colorRampPalette(brewer.pal(12, "Set3"))(length(var))
+    }
     names(cols) <- var
     anno_col[[i]] <-  cols
   }
