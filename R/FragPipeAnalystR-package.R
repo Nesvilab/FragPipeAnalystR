@@ -58,6 +58,7 @@
 #' @importFrom ggplot2 guide_colorbar
 #' @importFrom ggplot2 labs
 #' @importFrom ggplot2 position_dodge
+#' @importFrom ggplot2 scale_color_brewer
 #' @importFrom ggplot2 scale_color_continuous
 #' @importFrom ggplot2 scale_color_manual
 #' @importFrom ggplot2 scale_fill_manual
