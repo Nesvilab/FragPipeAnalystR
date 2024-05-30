@@ -210,7 +210,7 @@ visualize_PTMSEA("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result
 ``` r
 visualize_PTMSEA("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/PTMSEA_new/result/ccRCC-combined.gct",
                  "Tumor_vs_NAT_diff",
-                 selected_concepts=c(# "KINASE-PSP_Akt1/AKT1", "KINASE-PSP_Akt3/AKT3", "KINASE-PSP_Akt2/AKT2",
+                 selected_concepts=c("KINASE-PSP_Akt1/AKT1", "KINASE-PSP_Akt3/AKT3", "KINASE-PSP_Akt2/AKT2",
                                      "KINASE-iKiP_AKT3", "KINASE-iKiP_AKT2", "PATH-WP_PI3K-Akt_signaling_pathway", "KINASE-iKiP_AKT1"))
 ```
 
