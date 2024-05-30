@@ -129,7 +129,7 @@ visualize_PTMSEA("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result
 ``` {r, include=T}
 visualize_PTMSEA("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/PTMSEA_new/result/ccRCC-combined.gct",
                  "Tumor_vs_NAT_diff",
-                 selected_concepts=c(# "KINASE-PSP_Akt1/AKT1", "KINASE-PSP_Akt3/AKT3", "KINASE-PSP_Akt2/AKT2",
+                 selected_concepts=c("KINASE-PSP_Akt1/AKT1", "KINASE-PSP_Akt3/AKT3", "KINASE-PSP_Akt2/AKT2",
                                      "KINASE-iKiP_AKT3", "KINASE-iKiP_AKT2", "PATH-WP_PI3K-Akt_signaling_pathway", "KINASE-iKiP_AKT1"))
 ```
                                                       
@@ -145,15 +145,18 @@ And here is the result visualization:
 visualize_kinome("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/kinome_result/enrichment-analysis-result-table.txt")
 ```
 
+Similar to `visualize_PTMSEA`, users could specify the concepts of interests.
+
 ``` {r, include=T}
 AKT_labels <- c("AKT1", "AKT2", "ATK3")
 visualize_kinome("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/kinome_result/enrichment-analysis-result-table.txt",
-                                  labels=AKT_labels)
+                 labels=AKT_labels)
 ```
 
 ``` {r, include=T}
 PKC_labels <- c("PKCI", "PKCH", "PKCT", "PKCZ", "PKCE", "PKCD", "PKCG", "PKCA", "PKCB")
-visualize_kinome("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/kinome_result/enrichment-analysis-result-table.txt", labels=PKC_labels)
+visualize_kinome("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/kinome_result/enrichment-analysis-result-table.txt",
+                 labels=PKC_labels)
 ```
 
 
