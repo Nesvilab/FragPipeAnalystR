@@ -25,12 +25,14 @@ impute <- function(se, fun = c(
                      "bpca", "knn", "QRILC", "MLE",
                      "MinDet", "MinProb", "man", "min", "zero",
                      "mixed", "nbavg"
-                   ), ...) {
+                   ), seed = NULL, ...) {
   # Show error if inputs are not the required classes
   assertthat::assert_that(
     inherits(se, "SummarizedExperiment"),
     is.character(fun)
   )
+
+  if (is.null(seed)) seed <- 123
 
   # Show error if inputs do not contain required columns
   fun <- match.arg(fun)
@@ -59,11 +61,12 @@ impute <- function(se, fun = c(
 
   # if the "man" function is selected, use the manual imputation method
   if (fun == "man") {
-    se <- manual_impute(se, ...)
+    se <- manual_impute(se, seed=seed, ...)
   }
   # else use the MSnSet::impute function
   else {
     MSnSet_data <- as(se, "MSnSet")
+    set.seed(seed)
     MSnSet_imputed <- MSnbase::impute(MSnSet_data, method = fun, ...)
     assay(se) <- MSnbase::exprs(MSnSet_imputed)
   }
@@ -90,7 +93,8 @@ impute <- function(se, fun = c(
 #' standard deviation of the original distribution.
 #' @return An imputed SummarizedExperiment object.
 #' @export
-manual_impute <- function(se, scale = 0.3, shift = 1.8) {
+manual_impute <- function(se, scale = 0.3, shift = 1.8, seed=NULL) {
+  if (is.null(seed)) seed <- 123
   if (is.integer(scale)) scale <- is.numeric(scale)
   if (is.integer(shift)) shift <- is.numeric(shift)
   # Show error if inputs are not the required classes
@@ -127,6 +131,7 @@ manual_impute <- function(se, scale = 0.3, shift = 1.8) {
     )
   # Impute missing values by random draws from a distribution
   # which is left-shifted by parameter 'shift' * sd and scaled by parameter 'scale' * sd.
+  set.seed(seed)
   for (a in seq_len(nrow(stat))) {
     assay(se)[is.na(assay(se)[, stat$samples[a]]), stat$samples[a]] <-
       rnorm(stat$infin[a],
