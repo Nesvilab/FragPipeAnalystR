@@ -186,7 +186,7 @@ test_limma <- function(se, type = c("control", "all", "manual"),
     tidyr::unite(temp, comparison, variable) %>%
     tidyr::spread(temp, value)
   rowData(se) <- as.data.frame(left_join(as.data.frame(rowData(se)), table,
-    by = c("name" = "rowname")
+    by = c("ID" = "rowname")
   ))
   return(se)
 }
@@ -443,9 +443,9 @@ add_rejections <- function(diff, alpha = 0.05, lfc = 1) {
       significant = apply(sign_df, 1, function(x) any(x))
     )
     colnames(sign_df) <- gsub("_p.adj", "_significant", colnames(sign_df))
-    sign_df <- cbind(name = row_data$name, as.data.frame(sign_df))
+    sign_df <- cbind(ID = row_data$ID, as.data.frame(sign_df))
     rowData(diff) <- as.data.frame(left_join(as.data.frame(rowData(diff)), sign_df,
-      by = c("name" = "name")
+      by = c("ID" = "ID")
     ))
   }
   return(diff)
@@ -453,7 +453,7 @@ add_rejections <- function(diff, alpha = 0.05, lfc = 1) {
 
 # plot_volcano_new from FragPipe-Analyst
 #' @export
-plot_volcano <- function(dep, contrast, label_size = 3,
+plot_volcano <- function(dep, contrast, label_size = 3, name_col = NULL,
                          add_names = TRUE, adjusted = T, plot = TRUE, alpha = 0.05, lfc = 1) {
   # Show error if inputs are not the required classes
   if (is.integer(label_size)) label_size <- as.numeric(label_size)
@@ -474,7 +474,10 @@ plot_volcano <- function(dep, contrast, label_size = 3,
   row_data <- rowData(dep, use.names = FALSE)
 
   # Show error if inputs do not contain required columns
-  if (any(!c("name", "ID") %in% colnames(row_data))) {
+  if (is.null(name_col)) {
+    name_col <- "ID"
+  }
+  if (any(!c("name", "ID", name_col) %in% colnames(row_data))) {
     stop(
       paste0(
         "'name' and/or 'ID' columns are not present in '",
@@ -484,6 +487,7 @@ plot_volcano <- function(dep, contrast, label_size = 3,
       call. = FALSE
     )
   }
+
   if (length(grep("_p.adj|_diff", colnames(row_data))) < 1) {
     stop(
       paste0(
@@ -494,6 +498,7 @@ plot_volcano <- function(dep, contrast, label_size = 3,
       call. = FALSE
     )
   }
+
   if (length(grep("_significant", colnames(row_data))) < 1) {
     stop(
       paste0(
@@ -548,7 +553,9 @@ plot_volcano <- function(dep, contrast, label_size = 3,
     diff = row_data[, diff],
     p_values = -log10(row_data[, p_values]),
     signif = signif,
-    name = row_data$name
+    name = row_data$name,
+    ID = row_data$ID,
+    label = row_data[,name_col]
   )
   df <- df_tmp %>%
     data.frame() %>%
@@ -582,7 +589,7 @@ plot_volcano <- function(dep, contrast, label_size = 3,
   if (add_names) {
     p <- p + ggrepel::geom_text_repel(
       data = filter(df, signif),
-      aes(label = name),
+      aes(label = label),
       size = label_size,
       box.padding = unit(0.1, "lines"),
       point.padding = unit(0.1, "lines"),

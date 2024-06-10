@@ -169,7 +169,7 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
   if (type == "DIA" & is.null(log2transform)) {
     log2transform <- T
   } else if (is.null(level)) {
-    llog2transform <- F
+    log2transform <- F
   }
 
   if (!level %in% c("gene", "protein", "peptide", "glycan")) {
@@ -210,7 +210,7 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
                                       exp="LFQ", lfq_type = lfq_type)
       }
     } else {
-      data_unique <- make_unique(quant_table, "Index", "Protein ID")
+      data_unique <- make_unique(quant_table, "Protein ID", "Index")
       if (lfq_type == "Intensity") {
         lfq_columns <- setdiff(grep("Intensity", colnames(data_unique)),
                                grep("MaxLFQ", colnames(data_unique)))
@@ -242,15 +242,15 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
       # TODO: use DIA function
       # test_match_DIA_column_design(data_unique, selected_cols, exp_design)
       data_se <- make_se_customized(data_unique, selected_cols, exp_design,
-                                    log2transform = T, exp="DIA", level="protein")
+                                    log2transform = log2transform, exp="DIA", level="protein")
       dimnames(data_se) <- list(dimnames(data_se)[[1]], colData(data_se)$sample_name)
       colData(data_se)$label <- colData(data_se)$sample_name
     } else { # level == "peptide"
-      data_unique <- make_unique(quant_table, "Index", "Protein.Group")
+      data_unique <- make_unique(quant_table, "Protein.Group", "Index")
       cols <- colnames(data_unique)
       selected_cols <- which(!(cols %in% c("Index", "Protein.Group", "Protein.Ids", "Stripped.Sequence", "Protein.Names", "Genes", "First.Protein.Description", "ID", "name")))
       # test_match_DIA_column_design(data_unique, selected_cols, exp_design)
-      data_se <- make_se_customized(data_unique, selected_cols, exp_design, log2transform=T, exp="DIA", level="peptide")
+      data_se <- make_se_customized(data_unique, selected_cols, exp_design, log2transform=log2transform, exp="DIA", level="peptide")
       dimnames(data_se) <- list(dimnames(data_se)[[1]], colData(data_se)$sample_name)
       colData(data_se)$label <- colData(data_se)$sample_name
     }
@@ -264,10 +264,12 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
     # filtered_data <- avearrays(filtered_data)
     # filtered_data <- as.data.frame(filtered_data)
     # print(apply(filtered_data, 2, is.numeric))
+
+    # ProteinID is included as Index for protein-level result
     if (level == "protein") {
       quant_table$ProteinID <- quant_table$Index
     }
-    data_unique <- make_unique(quant_table, "Index", "ProteinID")
+    data_unique <- make_unique(quant_table, "ProteinID", "Index")
     # handle unmatched columns
     overlapped_samples <- intersect(colnames(data_unique), temp_exp_design$label)
     if (level == "gene") {
@@ -434,9 +436,8 @@ make_se_customized <- function(proteins_unique, columns, expdesign, log2transfor
     expdesign <- as.data.frame(expdesign)
   }
 
-
   # Select the assay data
-  rownames(proteins_unique) <- proteins_unique$name
+  rownames(proteins_unique) <- proteins_unique$ID
   raw <- proteins_unique[, columns]
   raw[raw == 0] <- NA
   if (log2transform) {
@@ -471,7 +472,7 @@ make_se_customized <- function(proteins_unique, columns, expdesign, log2transfor
 
   # Select the rowData
   row_data <- proteins_unique[, -columns]
-  rownames(row_data) <- row_data$name
+  rownames(row_data) <- row_data$ID
   # Generate the SummarizedExperiment object
   se <- SummarizedExperiment(
     assays = as.matrix(raw),
