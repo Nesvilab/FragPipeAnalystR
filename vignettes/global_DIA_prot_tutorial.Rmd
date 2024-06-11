@@ -21,6 +21,10 @@ ccrcc <- make_se_from_files("/Users/hsiaoyi/Documents/workspace/FragPipeR_manusc
 ```
 
 ``` {r include=T, warning=F}
+print(head(rownames(ccrcc)))
+```
+
+``` {r include=T, warning=F}
 plot_pca(ccrcc)
 ```
 
@@ -37,7 +41,11 @@ plot_feature_numbers(ccrcc)
 ```
 
 ```{r include=T, warning=F}
-plot_feature(ccrcc, c("CA9", "AHNAK2", "NDUFV2", "PIGR"))
+plot_feature(ccrcc, c("Q16790", # CA9
+                      "Q8IVF2", # AHNAK2
+                      "P19404", # NDUFV2
+                      "P01833" # PIGR
+                      ))
 ```
 
 ## Imputation
@@ -51,7 +59,11 @@ plot_pca(imputed)
 ```
 
 ```{r include=T, warning=F}
-plot_feature(imputed, c("CA9", "AHNAK2", "NDUFV2", "PIGR"))
+plot_feature(imputed,  c("Q16790", # CA9
+                      "Q8IVF2", # AHNAK2
+                      "P19404", # NDUFV2
+                      "P01833" # PIGR
+                      ))
 ```
 
 ## DE result without imputation
@@ -68,7 +80,7 @@ de_result_updated <- add_rejections(de_result)
 plot_volcano(de_result_updated, "Tumor_vs_NAT")
 ```
 
-One of the differences between this two sets of differential expression analysis is CA9 (Carbonic anhydrase 9) which is a [known marker of clear cell renal cell carcinoma](https://doi.org/10.1016/j.ejca.2010.07.020).
+One of the differences between differential expression analysis results from unimputed and imputed data is CA9 (Carbonic anhydrase 9, Q16790) which is a [known marker of clear cell renal cell carcinoma](https://doi.org/10.1016/j.ejca.2010.07.020). Its expression is missing in the normal data, which leads its absence of unimputed data.
 
 ``` {r include=T, warning=F}
 sessionInfo()

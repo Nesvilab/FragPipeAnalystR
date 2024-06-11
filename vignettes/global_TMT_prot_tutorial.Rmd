@@ -33,6 +33,18 @@ plot_missval_heatmap(ccrcc)
 plot_feature_numbers(ccrcc)
 ```
 
+You may want to check some of known markers through box plots:
+
+``` {r include=T, warning=F}
+plot_feature(ccrcc,  c("Q16790", # CA9
+                      "Q8IVF2", # AHNAK2
+                      "P19404", # NDUFV2
+                      "P01833" # PIGR
+                      ))
+```
+
+This could be done via `Gene` column as well:
+
 ```{r include=T, warning=F}
 plot_feature(ccrcc, c("CA9", "AHNAK2", "NDUFV2", "PIGR"), index="Gene")
 ```
@@ -40,7 +52,28 @@ plot_feature(ccrcc, c("CA9", "AHNAK2", "NDUFV2", "PIGR"), index="Gene")
 ```{r include=T, warning=F}
 de_result <- test_limma(ccrcc, type = "all")
 de_result_updated <- add_rejections(de_result)
+```
+
+Volcano plot is designed for visualizing differential expression analysis result:
+
+``` {r include=T, warning=F}
 plot_volcano(de_result_updated, "Tumor_vs_NAT")
+```
+
+It could be labelled by different column available in the `rowData(de_result_updated)` such as `Gene`:
+
+``` {r include=T, warning=F}
+plot_volcano(de_result_updated, "Tumor_vs_NAT", name_col="Gene")
+```
+
+``` {r include=T, warning=F}
+or_result <- or_test(de_result_updated, database = "Hallmark", direction = "UP")
+plot_or(or_result)
+```
+
+```{r include=T, warning=F}
+or_result <- or_test(de_result_updated, database = "Hallmark", direction = "DOWN")
+plot_or(or_result)
 ```
 
 ``` {r include=T, warning=F}

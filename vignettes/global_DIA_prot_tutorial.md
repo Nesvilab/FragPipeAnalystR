@@ -14,7 +14,7 @@ FragPipeAnalystR is a R package intended for downstream analysis of data generat
 As described in the manuscript, DIA ccRCC data were fetched from [Clark et al. (2019)](https://doi.org/10.1016/j.cell.2019.10.007) and processed via [FragPipe](https://fragpipe.nesvilab.org/). As you will see in the following sections. The result is quite similar to corresponding TMT data.
 
 
-```r
+``` r
 library(FragPipeAnalystR)
 ccrcc <- make_se_from_files("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/DIA_4plex/diann-output.pg_matrix.tsv",
                          "/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/DIA_4plex/experiment_annotation_clean.tsv",
@@ -22,21 +22,31 @@ ccrcc <- make_se_from_files("/Users/hsiaoyi/Documents/workspace/FragPipeR_manusc
 ```
 
 
-```r
-plot_pca(ccrcc)
+``` r
+print(head(rownames(ccrcc)))
 ```
 
-![](global_DIA_prot_tutorial_files/figure-html/unnamed-chunk-2-1.png)<!-- -->
+```
+## [1] "A0A024RBG1" "A0A075B6H7" "A0A075B6H9" "A0A075B6I0" "A0A075B6I4"
+## [6] "A0A075B6I9"
+```
 
 
-```r
-plot_correlation_heatmap(ccrcc)
+``` r
+plot_pca(ccrcc)
 ```
 
 ![](global_DIA_prot_tutorial_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
 
 
-```r
+``` r
+plot_correlation_heatmap(ccrcc)
+```
+
+![](global_DIA_prot_tutorial_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
+
+
+``` r
 plot_missval_heatmap(ccrcc)
 ```
 
@@ -54,46 +64,54 @@ plot_missval_heatmap(ccrcc)
 ## Set `ht_opt$message = FALSE` to turn off this message.
 ```
 
-![](global_DIA_prot_tutorial_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
-
-
-```r
-plot_feature_numbers(ccrcc)
-```
-
 ![](global_DIA_prot_tutorial_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
 
 
-```r
-plot_feature(ccrcc, c("CA9", "AHNAK2", "NDUFV2", "PIGR"))
+``` r
+plot_feature_numbers(ccrcc)
 ```
 
 ![](global_DIA_prot_tutorial_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
 
+
+``` r
+plot_feature(ccrcc, c("Q16790", # CA9
+                      "Q8IVF2", # AHNAK2
+                      "P19404", # NDUFV2
+                      "P01833" # PIGR
+                      ))
+```
+
+![](global_DIA_prot_tutorial_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+
 ## Imputation
 
 
-```r
+``` r
 imputed <- manual_impute(ccrcc)
 ```
 
 
-```r
+``` r
 plot_pca(imputed)
-```
-
-![](global_DIA_prot_tutorial_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
-
-
-```r
-plot_feature(imputed, c("CA9", "AHNAK2", "NDUFV2", "PIGR"))
 ```
 
 ![](global_DIA_prot_tutorial_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
 
+
+``` r
+plot_feature(imputed,  c("Q16790", # CA9
+                      "Q8IVF2", # AHNAK2
+                      "P19404", # NDUFV2
+                      "P01833" # PIGR
+                      ))
+```
+
+![](global_DIA_prot_tutorial_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+
 ## DE result without imputation
 
-```r
+``` r
 de_result <- test_limma(ccrcc, type = "all")
 ```
 
@@ -101,16 +119,16 @@ de_result <- test_limma(ccrcc, type = "all")
 ## Tested contrasts: Tumor_vs_NAT
 ```
 
-```r
+``` r
 de_result_updated <- add_rejections(de_result)
 plot_volcano(de_result_updated, "Tumor_vs_NAT")
 ```
 
-![](global_DIA_prot_tutorial_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+![](global_DIA_prot_tutorial_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
 
 ## DE result with imputation
 
-```r
+``` r
 de_result <- test_limma(imputed, type = "all")
 ```
 
@@ -118,17 +136,17 @@ de_result <- test_limma(imputed, type = "all")
 ## Tested contrasts: Tumor_vs_NAT
 ```
 
-```r
+``` r
 de_result_updated <- add_rejections(de_result)
 plot_volcano(de_result_updated, "Tumor_vs_NAT")
 ```
 
-![](global_DIA_prot_tutorial_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
+![](global_DIA_prot_tutorial_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
 
 One of the differences between this two sets of differential expression analysis is CA9 (Carbonic anhydrase 9) which is a [known marker of clear cell renal cell carcinoma](https://doi.org/10.1016/j.ejca.2010.07.020).
 
 
-```r
+``` r
 sessionInfo()
 ```
 
@@ -161,18 +179,18 @@ sessionInfo()
 ##   [9] png_0.1-8                   vctrs_0.6.5                
 ##  [11] stringr_1.5.1               ProtGenerics_1.34.0        
 ##  [13] pkgconfig_2.0.3             shape_1.4.6.1              
-##  [15] crayon_1.5.2                fastmap_1.1.1              
+##  [15] crayon_1.5.2                fastmap_1.2.0              
 ##  [17] XVector_0.42.0              labeling_0.4.3             
-##  [19] utf8_1.2.4                  rmarkdown_2.26             
+##  [19] utf8_1.2.4                  rmarkdown_2.27             
 ##  [21] tzdb_0.4.0                  preprocessCore_1.64.0      
-##  [23] purrr_1.0.2                 xfun_0.43                  
-##  [25] zlibbioc_1.48.2             cachem_1.0.8               
+##  [23] purrr_1.0.2                 xfun_0.44                  
+##  [25] zlibbioc_1.48.2             cachem_1.1.0               
 ##  [27] SNFtool_2.3.1               GenomeInfoDb_1.38.8        
 ##  [29] jsonlite_1.8.8              ExPosition_2.8.23          
 ##  [31] highr_0.10                  DelayedArray_0.28.0        
 ##  [33] BiocParallel_1.36.0         parallel_4.3.1             
 ##  [35] cluster_2.1.4               R6_2.5.1                   
-##  [37] stringi_1.8.3               bslib_0.7.0                
+##  [37] stringi_1.8.4               bslib_0.7.0                
 ##  [39] RColorBrewer_1.1-3          limma_3.58.1               
 ##  [41] GenomicRanges_1.54.1        jquerylib_0.1.4            
 ##  [43] assertthat_0.2.1            Rcpp_1.0.12                
@@ -188,7 +206,7 @@ sessionInfo()
 ##  [63] Biobase_2.62.0              evaluate_0.23              
 ##  [65] ConsensusClusterPlus_1.66.0 circlize_0.4.16            
 ##  [67] pillar_1.9.0                affyio_1.72.0              
-##  [69] BiocManager_1.30.22         MatrixGenerics_1.14.0      
+##  [69] BiocManager_1.30.23         MatrixGenerics_1.14.0      
 ##  [71] renv_0.17.0                 foreach_1.5.2              
 ##  [73] stats4_4.3.1                plotly_4.10.4              
 ##  [75] MSnbase_2.28.1              MALDIquant_1.22.2          
@@ -211,7 +229,7 @@ sessionInfo()
 ## [109] pcaMethods_1.94.0           gtable_0.3.5               
 ## [111] sass_0.4.9                  digest_0.6.35              
 ## [113] BiocGenerics_0.48.1         ggrepel_0.9.5              
-## [115] SparseArray_1.2.4           farver_2.1.1               
+## [115] SparseArray_1.2.4           farver_2.1.2               
 ## [117] htmlwidgets_1.6.4           rjson_0.2.21               
 ## [119] htmltools_0.5.8.1           lifecycle_1.0.4            
 ## [121] httr_1.4.7                  alluvial_0.1-2             
