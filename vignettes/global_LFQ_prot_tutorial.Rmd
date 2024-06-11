@@ -18,6 +18,10 @@ se <- make_se_from_files("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscrip
 ```
 
 ``` {r include=T, warning=F}
+print(head(rownames(se)))
+``` 
+
+``` {r include=T, warning=F}
 plot_pca(se)
 ```
 
@@ -55,7 +59,16 @@ plot_correlation_heatmap(imputed_se)
 ```{r include=T, warning=F}
 de_result <- test_limma(imputed_se, type = "all")
 de_result_updated <- add_rejections(de_result)
+```
+
+``` {r include=T, warning=F}
 plot_volcano(de_result_updated, "CCND1_vs_CONTROL")
+```
+
+The volcano could be labelled in a different way via `name_col` argument of the function:
+
+``` {r include=T, warning=F}
+plot_volcano(de_result_updated, "CCND1_vs_CONTROL", name_col="Gene")
 ```
 
 ``` {r include=T, warning=F}

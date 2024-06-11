@@ -240,11 +240,13 @@ visualize_kinome("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result
 
 ![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-17-1.png)<!-- -->
 
+Similar to `visualize_PTMSEA`, users could specify the concepts of interests.
+
 
 ``` r
 AKT_labels <- c("AKT1", "AKT2", "ATK3")
 visualize_kinome("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/kinome_result/enrichment-analysis-result-table.txt",
-                                  labels=AKT_labels)
+                 labels=AKT_labels)
 ```
 
 ![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-18-1.png)<!-- -->
@@ -252,7 +254,8 @@ visualize_kinome("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result
 
 ``` r
 PKC_labels <- c("PKCI", "PKCH", "PKCT", "PKCZ", "PKCE", "PKCD", "PKCG", "PKCA", "PKCB")
-visualize_kinome("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/kinome_result/enrichment-analysis-result-table.txt", labels=PKC_labels)
+visualize_kinome("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/kinome_result/enrichment-analysis-result-table.txt",
+                 labels=PKC_labels)
 ```
 
 ![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-19-1.png)<!-- -->

@@ -11,7 +11,7 @@ Here we presented the usage of FragPipeAnalystR to reproduce AP-MS analysis prev
 
 ## Reading input files
 
-```r
+``` r
 library(FragPipeAnalystR)
 se <- make_se_from_files("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/AP-MS/combined_protein.tsv",
                          "/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/AP-MS/experiment_annotation.tsv",
@@ -19,35 +19,45 @@ se <- make_se_from_files("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscrip
 ```
 
 
-```r
-plot_pca(se)
+``` r
+print(head(rownames(se)))
 ```
 
-![](global_LFQ_prot_tutorial_files/figure-html/unnamed-chunk-2-1.png)<!-- -->
+```
+## [1] "A0A075B6R9" "A0A075B6S2" "A0A0C4DH68" "A0A2R8Y4L2" "A0FGR8"    
+## [6] "A0MZ66"
+```
 
 
-```r
-plot_correlation_heatmap(se)
+``` r
+plot_pca(se)
 ```
 
 ![](global_LFQ_prot_tutorial_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
 
 
-```r
-plot_missval_heatmap(se)
+``` r
+plot_correlation_heatmap(se)
 ```
 
 ![](global_LFQ_prot_tutorial_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
 
 
-```r
-plot_feature_numbers(se)
+``` r
+plot_missval_heatmap(se)
 ```
 
 ![](global_LFQ_prot_tutorial_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
 
 
-```r
+``` r
+plot_feature_numbers(se)
+```
+
+![](global_LFQ_prot_tutorial_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
+
+
+``` r
 colData(se)$condition
 ```
 
@@ -57,28 +67,28 @@ colData(se)$condition
 
 ## Imputation
 
-```r
+``` r
 imputed_se <- manual_impute(se)
 ```
 
 
 
-```r
+``` r
 plot_pca(imputed_se)
-```
-
-![](global_LFQ_prot_tutorial_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
-
-
-```r
-plot_correlation_heatmap(imputed_se)
 ```
 
 ![](global_LFQ_prot_tutorial_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
 
+
+``` r
+plot_correlation_heatmap(imputed_se)
+```
+
+![](global_LFQ_prot_tutorial_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+
 ## Differential expression analysis
 
-```r
+``` r
 de_result <- test_limma(imputed_se, type = "all")
 ```
 
@@ -86,15 +96,28 @@ de_result <- test_limma(imputed_se, type = "all")
 ## Tested contrasts: CCND1_vs_CONTROL
 ```
 
-```r
+``` r
 de_result_updated <- add_rejections(de_result)
+```
+
+
+``` r
 plot_volcano(de_result_updated, "CCND1_vs_CONTROL")
 ```
 
-![](global_LFQ_prot_tutorial_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+![](global_LFQ_prot_tutorial_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
+
+The volcano could be labelled in a different way via `name_col` argument of the function:
 
 
-```r
+``` r
+plot_volcano(de_result_updated, "CCND1_vs_CONTROL", name_col="Gene")
+```
+
+![](global_LFQ_prot_tutorial_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
+
+
+``` r
 sessionInfo()
 ```
 
@@ -117,7 +140,7 @@ sessionInfo()
 ## [1] stats     graphics  grDevices datasets  utils     methods   base     
 ## 
 ## other attached packages:
-## [1] FragPipeAnalystR_0.1.4
+## [1] FragPipeAnalystR_0.1.5
 ## 
 ## loaded via a namespace (and not attached):
 ##   [1] bitops_1.0-7                fdrtool_1.2.17             
@@ -127,18 +150,18 @@ sessionInfo()
 ##   [9] png_0.1-8                   vctrs_0.6.5                
 ##  [11] stringr_1.5.1               ProtGenerics_1.34.0        
 ##  [13] pkgconfig_2.0.3             shape_1.4.6.1              
-##  [15] crayon_1.5.2                fastmap_1.1.1              
+##  [15] crayon_1.5.2                fastmap_1.2.0              
 ##  [17] XVector_0.42.0              labeling_0.4.3             
-##  [19] utf8_1.2.4                  rmarkdown_2.26             
+##  [19] utf8_1.2.4                  rmarkdown_2.27             
 ##  [21] tzdb_0.4.0                  preprocessCore_1.64.0      
-##  [23] purrr_1.0.2                 xfun_0.43                  
-##  [25] zlibbioc_1.48.2             cachem_1.0.8               
+##  [23] purrr_1.0.2                 xfun_0.44                  
+##  [25] zlibbioc_1.48.2             cachem_1.1.0               
 ##  [27] SNFtool_2.3.1               GenomeInfoDb_1.38.8        
 ##  [29] jsonlite_1.8.8              ExPosition_2.8.23          
 ##  [31] highr_0.10                  DelayedArray_0.28.0        
 ##  [33] BiocParallel_1.36.0         parallel_4.3.1             
 ##  [35] cluster_2.1.4               R6_2.5.1                   
-##  [37] stringi_1.8.3               bslib_0.7.0                
+##  [37] stringi_1.8.4               bslib_0.7.0                
 ##  [39] RColorBrewer_1.1-3          limma_3.58.1               
 ##  [41] GenomicRanges_1.54.1        jquerylib_0.1.4            
 ##  [43] assertthat_0.2.1            Rcpp_1.0.12                
@@ -154,7 +177,7 @@ sessionInfo()
 ##  [63] Biobase_2.62.0              evaluate_0.23              
 ##  [65] ConsensusClusterPlus_1.66.0 circlize_0.4.16            
 ##  [67] pillar_1.9.0                affyio_1.72.0              
-##  [69] BiocManager_1.30.22         MatrixGenerics_1.14.0      
+##  [69] BiocManager_1.30.23         MatrixGenerics_1.14.0      
 ##  [71] renv_0.17.0                 foreach_1.5.2              
 ##  [73] stats4_4.3.1                plotly_4.10.4              
 ##  [75] MSnbase_2.28.1              MALDIquant_1.22.2          
@@ -177,7 +200,7 @@ sessionInfo()
 ## [109] pcaMethods_1.94.0           gtable_0.3.5               
 ## [111] sass_0.4.9                  digest_0.6.35              
 ## [113] BiocGenerics_0.48.1         ggrepel_0.9.5              
-## [115] SparseArray_1.2.4           farver_2.1.1               
+## [115] SparseArray_1.2.4           farver_2.1.2               
 ## [117] htmlwidgets_1.6.4           rjson_0.2.21               
 ## [119] htmltools_0.5.8.1           lifecycle_1.0.4            
 ## [121] httr_1.4.7                  alluvial_0.1-2             
