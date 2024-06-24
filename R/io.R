@@ -159,7 +159,7 @@ readExpDesign <- function(exp_anno_path, type = "TMT", lfq_type="Intensity", low
 # - experiment annotation file
 #' @export
 make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", level = NULL, exp_type=NULL,
-                               log2transform = NULL, lfq_type = "Intensity") {
+                               log2transform = NULL, lfq_type = "Intensity", gencode = F) {
   if (type == "TMT" & is.null(level)) {
     level <- "gene"
   } else if (is.null(level)) {
@@ -180,6 +180,7 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
   quant_table <- readQuantTable(quant_table_path, type = type, level=level, exp_type=exp_type)
   exp_design <- readExpDesign(exp_anno_path, type = type, lfq_type = lfq_type)
   if (type == "LFQ") {
+    quant_table <- quant_table[!grepl("contam", quant_table$Protein),]
     if (level != "peptide") {
       data_unique <- make_unique(quant_table, "Gene", "Protein ID")
       if (lfq_type == "Intensity") {
@@ -235,6 +236,9 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
       }
     }
   } else if (type == "DIA") {
+    if (gencode) {
+      quant_table <- quant_table[grepl("^ENS", quant_table$Protein.Group),]
+    }
     if (level != "peptide") {
       data_unique <- make_unique(quant_table, "Genes", "Protein.Group")
       cols <- colnames(data_unique)
