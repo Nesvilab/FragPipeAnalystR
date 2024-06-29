@@ -1,0 +1,76 @@
+---
+title: "FragPipeAnalystR LFQ tutorial"
+output:
+  html_document:
+    keep_md: yes
+---
+
+# Introduction
+
+Here we presented the usage of FragPipeAnalystR to perform AP-MS analysis in an alternative way. Previously, the protein-level analysis was demonstrated in the manuscript via FragPipe-Analyst website, but here we are going to analyze it at the peptide-level.
+
+## Reading input files
+``` {r include=T, warning=F}
+library(FragPipeAnalystR)
+se <- make_se_from_files("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/AP-MS/combined_peptide.tsv",
+                         "/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/AP-MS/experiment_annotation.tsv",
+                         type = "LFQ", level = "peptide")
+```
+
+``` {r include=T, warning=F}
+print(head(rownames(se)))
+``` 
+
+``` {r include=T, warning=F}
+plot_pca(se)
+```
+
+``` {r include=T, warning=F}
+plot_correlation_heatmap(se)
+```
+
+``` {r include=T, warning=F}
+plot_missval_heatmap(se)
+```
+
+``` {r include=T, warning=F}
+plot_feature_numbers(se)
+```
+
+```{r include=T, warning=F}
+colData(se)$condition
+```
+
+## Imputation
+```{r include=T, warning=F}
+imputed_se <- manual_impute(se)
+```
+
+
+``` {r include=T, warning=F}
+plot_pca(imputed_se)
+```
+
+``` {r include=T, warning=F}
+plot_correlation_heatmap(imputed_se)
+```
+
+## Differential expression analysis
+```{r include=T, warning=F}
+de_result <- test_limma(imputed_se, type = "all")
+de_result_updated <- add_rejections(de_result)
+```
+
+``` {r include=T, warning=F}
+plot_volcano(de_result_updated, "CCND1_vs_CONTROL")
+```
+
+The volcano could be labelled in a different way via `name_col` argument of the function:
+
+``` {r include=T, warning=F}
+plot_volcano(de_result_updated, "CCND1_vs_CONTROL", name_col="Gene")
+```
+
+``` {r include=T, warning=F}
+sessionInfo()
+```
