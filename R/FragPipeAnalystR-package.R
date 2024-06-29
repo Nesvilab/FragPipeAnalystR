@@ -12,6 +12,7 @@
 #' @export metadata<-
 #' @export rowData
 #' @export rowData<-
+#' @importFrom clusterProfiler GSEA
 #' @importFrom cmapR GCT
 #' @importFrom cmapR ids
 #' @importFrom cmapR mat
