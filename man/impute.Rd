@@ -9,6 +9,7 @@ impute(
   se,
   fun = c("bpca", "knn", "QRILC", "MLE", "MinDet", "MinProb", "man", "min", "zero",
     "mixed", "nbavg"),
+  seed = NULL,
   ...
 )
 }
