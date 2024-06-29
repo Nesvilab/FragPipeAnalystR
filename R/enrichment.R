@@ -10,8 +10,8 @@ GSEA_test <- function(se, col=NULL, database="GO Biological Process", file=NULL,
     print(paste0("Error: The column speiciifed: ", col, " doesn't not exist. Valid columns in rowData are ", paste0(colnames(rowData(se)), collapse = ", ")))
     return(NULL)
   }
-  geneList <- rowData(de_result_updated)[[col]]
-  names(geneList) <- rowData(de_result_updated)[["name"]]
+  geneList <- rowData(se)[[col]]
+  names(geneList) <- rowData(se)[["ID"]]
   geneList <- geneList[!is.na(geneList)]
   geneList = sort(geneList, decreasing = TRUE)
 
@@ -65,7 +65,7 @@ GSEA_test <- function(se, col=NULL, database="GO Biological Process", file=NULL,
 }
 
 #' @export
-plot_GSEA <- function(gsea_result, categroies=10) {
+plot_GSEA <- function(gsea_result, categroies=15) {
   temp <- gsea_result[order(gsea_result$NES, decreasing = T),]
   ID_selected <- temp[c(1:categroies, (dim(temp)[1]-categroies + 1):dim(temp)[1]),"ID"]
   temp <- temp[temp$ID %in% ID_selected,]
@@ -440,10 +440,12 @@ test_ora_mod <- function(dep,
 
   # Run background list
   message("Background")
-  if (metadata(dep)$level == "protein" & metadata(dep)$exp == "TMT") {
+  if (metadata(dep)$exp == "TMT" & metadata(dep)$level == "protein") {
     background <- unique(row_data$Gene)
-  } else if (metadata(dep)$level == "protein" | metadata(dep)$level == "gene") {
-    background <- gsub("[.].*", "", row_data$name)
+  } else if (metadata(dep)$exp == "TMT" & metadata(dep)$level == "gene") {
+    background <- unique(row_data$ID)
+  } else if (metadata(dep)$level == "protein") {
+    background <- unique(gsub("[.].*", "", row_data$name))
   } else if (metadata(dep)$level == "peptide") {
     background <- unique(row_data$Gene)
   }
@@ -487,9 +489,11 @@ test_ora_mod <- function(dep,
       }
       significant <- significant[significant[gsub("_significant", "_p.adj", contrast)] < alpha,]
 
-      if (metadata(dep)$level == "protein" & metadata(dep)$exp == "TMT") {
+      if (metadata(dep)$exp == "TMT" & metadata(dep)$level == "protein") {
         genes <- unique(significant$Gene)
-      } else if (metadata(dep)$level == "protein" | metadata(dep)$level == "gene") {
+      } else if (metadata(dep)$exp == "TMT" & metadata(dep)$level == "gene") {
+        genes <- unique(significant$ID)
+      } else if (metadata(dep)$level == "protein") {
         genes <- significant$name
       } else if (metadata(dep)$level == "peptide") {
         genes <- unique(significant$Gene)
@@ -534,9 +538,11 @@ test_ora_mod <- function(dep,
 
     # Run enrichR
 
-    if (metadata(dep)$level == "protein" & metadata(dep)$exp == "TMT") {
+    if (metadata(dep)$exp == "TMT" & metadata(dep)$level == "protein") {
       genes <- unique(significant$Gene)
-    } else if (metadata(dep)$level == "protein" | metadata(dep)$level == "gene") {
+    } else if (metadata(dep)$exp == "TMT" & metadata(dep)$level == "gene") {
+      genes <- unique(significant$ID)
+    } else if (metadata(dep)$level == "protein") {
       genes <- significant$name
     } else if (metadata$level == "peptide") {
       genes <- unique(significant$Gene)
