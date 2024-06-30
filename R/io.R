@@ -258,6 +258,7 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
       dimnames(data_se) <- list(dimnames(data_se)[[1]], colData(data_se)$sample_name)
       colData(data_se)$label <- colData(data_se)$sample_name
     }
+    rowData(data_se)$Gene <- rowData(data_se)$Genes
   } else { # TMT
     temp_exp_design <- exp_design
     # sample without specified condition will be removed
