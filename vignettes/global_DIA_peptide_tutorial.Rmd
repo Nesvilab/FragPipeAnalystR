@@ -1,0 +1,61 @@
+---
+title: "FragPipeAnalystR DIA Peptide-level Analysis tutorial"
+output:
+  html_document:
+    keep_md: yes
+---
+
+# Introduction
+
+## Reading input files
+``` {r include=T, warning=F}
+library(FragPipeAnalystR)
+se <- make_se_from_files("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/LiP-MS_latest/report.pr_matrix.tsv",
+                         "/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/LiP-MS_latest/experiment_annotation.txt",
+                         type = "DIA", level = "peptide")
+```
+
+``` {r include=T, warning=F}
+plot_pca(se)
+```
+
+``` {r include=T, warning=F}
+plot_correlation_heatmap(se)
+```
+
+``` {r include=T, warning=F}
+plot_missval_heatmap(se)
+```
+
+``` {r include=T, warning=F}
+plot_feature_numbers(se)
+```
+
+```{r include=T, warning=F}
+colData(se)$condition
+```
+
+## Imputation
+```{r include=T, warning=F}
+imputed_se <- manual_impute(se)
+```
+
+
+``` {r include=T, warning=F}
+plot_pca(imputed_se)
+```
+
+``` {r include=T, warning=F}
+plot_correlation_heatmap(imputed_se)
+```
+
+## Differential expression analysis
+```{r include=T, warning=F}
+de_result <- test_limma(imputed_se, type = "all")
+de_result_updated <- add_rejections(de_result)
+plot_volcano(de_result_updated, "DMSO_vs_RPM")
+```
+
+``` {r include=T, warning=F}
+sessionInfo()
+```

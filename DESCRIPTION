@@ -1,7 +1,7 @@
 Package: FragPipeAnalystR
 Type: Package
 Title: FragPipe downstream analysis in R
-Version: 0.1.6
+Version: 0.1.7
 Author: Yi Hsiao
 Maintainer: Yi Hsiao <yihsiao@umich.edu>
 Description: More about what it does (maybe more than one line)
@@ -38,14 +38,14 @@ Imports:
     SummarizedExperiment,
     tibble,
     tidyr,
-    vsn
-Suggests: 
+    vsn,
     clusterProfiler,
+    msigdbr
+Suggests:
     devtools,
     ensembldb,
     knitr,
     lintr,
-    msigdbr,
     org.Hs.eg.db,
     rcmdcheck,
     rmarkdown,

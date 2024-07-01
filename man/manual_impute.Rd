@@ -5,7 +5,7 @@
 \title{Imputation by random draws from a manually defined distribution
 customized from https://github.com/arnesmits/DEP/blob/b425d8d0db67b15df4b8bcf87729ef0bf5800256/R/functions.R}
 \usage{
-manual_impute(se, scale = 0.3, shift = 1.8)
+manual_impute(se, scale = 0.3, shift = 1.8, seed = NULL)
 }
 \arguments{
 \item{se}{SummarizedExperiment,

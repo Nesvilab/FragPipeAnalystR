@@ -26,29 +26,64 @@ library(FragPipeAnalystR)
 data("ccrcc", package = "FragPipeAnalystR")
 ```
 
+### PCA
+
 ```
 plot_pca(ccrcc)
 ```
 
-![PCA](vignettes/tutorial_files/figure-html/unnamed-chunk-2-1.png)
+![PCA](vignettes/tutorial_files/figure-html/unnamed-chunk-6-1.png)
 
-```
-plot_missval_heatmap(ccrcc)
-```
-
-![missing value heatmap](vignettes/tutorial_files/figure-html/unnamed-chunk-4-1.png)
+### Correlation heatmap
 
 ```
 plot_correlation_heatmap(ccrcc)
 ```
 
-![correlation heatmap](vignettes/tutorial_files/figure-html/unnamed-chunk-3-1.png)
+![correlation heatmap](vignettes/tutorial_files/figure-html/unnamed-chunk-7-1.png)
+
+### Missing value heatmap
+
+```
+plot_missval_heatmap(ccrcc)
+```
+
+![missing value heatmap](vignettes/tutorial_files/figure-html/unnamed-chunk-8-1.png)
+
+### Feature numbers
 
 ```
 plot_feature_numbers(ccrcc)
 ```
 
-![feature bar plot](vignettes/tutorial_files/figure-html/unnamed-chunk-5-1.png)
+![feature bar plot](vignettes/tutorial_files/figure-html/unnamed-chunk-9-1.png)
+
+### Box plot
+
+```
+plot_feature(ccrcc, c("CA9", "AHNAK2", "NDUFV2", "PIGR"))
+```
+
+![Box plot](vignettes/tutorial_files/figure-html/unnamed-chunk-10-1.png)
+
+### Differential expression analysis
+
+```
+de_result <- test_limma(ccrcc, type = "all")
+de_result_updated <- add_rejections(de_result)
+plot_volcano(de_result_updated, "Tumor_vs_NAT")
+```
+
+![Volcano plot](vignettes/tutorial_files/figure-html/unnamed-chunk-12-1.png)
+
+### Enrichment
+
+``` {r include=T, warning=F}
+or_result <- or_test(de_result_updated, database = "Hallmark", direction = "UP")
+plot_or(or_result)
+```
+
+![Enrichment analysis](vignettes/tutorial_files/figure-html/unnamed-chunk-13-1.png)
 
 
 ## Developer guide
