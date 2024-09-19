@@ -236,10 +236,10 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
       }
     }
   } else if (type == "DIA") {
-    if (gencode) {
-      quant_table <- quant_table[grepl("^ENS", quant_table$Protein.Group),]
-    }
-    if (level != "peptide") {
+    if (level == "protein") {
+      if (gencode) {
+        quant_table <- quant_table[grepl("^ENS", quant_table$Protein.Group),]
+      }
       data_unique <- make_unique(quant_table, "Genes", "Protein.Group")
       cols <- colnames(data_unique)
       selected_cols <- which(!(cols %in% c("Protein.Group", "Protein.Ids", "Protein.Names", "Genes", "First.Protein.Description", "ID", "name")))
@@ -247,6 +247,20 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
       # test_match_DIA_column_design(data_unique, selected_cols, exp_design)
       data_se <- make_se_customized(data_unique, selected_cols, exp_design,
                                     log2transform = log2transform, exp="DIA", level="protein")
+      dimnames(data_se) <- list(dimnames(data_se)[[1]], colData(data_se)$sample_name)
+      colData(data_se)$label <- colData(data_se)$sample_name
+    } else if (level == "gene") {
+      if (gencode) {
+        quant_table <- quant_table[grepl("^ENS", quant_table$Genes),]
+      }
+      quant_table$Index <- quant_table$Genes
+      data_unique <- make_unique(quant_table, "Genes", "Index")
+      cols <- colnames(data_unique)
+      selected_cols <- which(!(cols %in% c("Genes", "Index", "ID", "name")))
+      # TODO: use DIA function
+      # test_match_DIA_column_design(data_unique, selected_cols, exp_design)
+      data_se <- make_se_customized(data_unique, selected_cols, exp_design,
+                                    log2transform = log2transform, exp="DIA", level="gene")
       dimnames(data_se) <- list(dimnames(data_se)[[1]], colData(data_se)$sample_name)
       colData(data_se)$label <- colData(data_se)$sample_name
     } else { # level == "peptide"
