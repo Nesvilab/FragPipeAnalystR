@@ -2,6 +2,8 @@
 
 R package for FragPipe downstream analysis
 
+check [documentation](https://www.nesvilab.org/FragPipeAnalystR/) to get started
+
 ## Installation
 
 We recommend to use [renv](https://rstudio.github.io/renv/index.html) for managing your R environment dependencies
