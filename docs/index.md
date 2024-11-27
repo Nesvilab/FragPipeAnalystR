@@ -31,6 +31,5 @@ To use FragPipeAnalyst R, follow the same instruction for [preparing the input f
 - [TMT ccRCC phosphosite analysis](phospho_TMT_tutorial.html)
 
 ## Reference
-Analysis and visualization of quantitative proteomics data using FragPipe-Analyst
-Yi Hsiao, Haijian Zhang, Ginny Xiaohe Li, Yamei Deng, Fengchao Yu, Hossein Valipour Kahrood, Joel R. Steele, Ralf B. Schittenhelm, Alexey I. Nesvizhskii
-bioRxiv 2024.03.05.583643; doi: https://doi.org/10.1101/2024.03.05.583643
+[Yi Hsiao, Haijian Zhang, Ginny Xiaohe Li, Yamei Deng, Fengchao Yu, Hossein Valipour Kahrood, Joel R. Steele, Ralf B. Schittenhelm, and Alexey I. Nesvizhskii
+Journal of Proteome Research (2024), DOI: 10.1021/acs.jproteome.4c00294](https://pubs.acs.org/doi/10.1021/acs.jproteome.4c00294)
