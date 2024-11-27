@@ -105,3 +105,7 @@ We recommend to choose 2 here to initialize the project since some dependencies 
 - `usethis::use_import_from("package name", "function name")` to include dependencies
 - `devtools::build_rmd("./vignettes/*.Rmd")` to build the tutorial Rmd file
 
+## Reference
+[Yi Hsiao, Haijian Zhang, Ginny Xiaohe Li, Yamei Deng, Fengchao Yu, Hossein Valipour Kahrood, Joel R. Steele, Ralf B. Schittenhelm, and Alexey I. Nesvizhskii
+Journal of Proteome Research (2024), DOI: 10.1021/acs.jproteome.4c00294](https://pubs.acs.org/doi/10.1021/acs.jproteome.4c00294)
+
