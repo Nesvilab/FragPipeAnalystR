@@ -2,7 +2,7 @@
 
 R package for FragPipe downstream analysis
 
-Check [documentation](https://www.nesvilab.org/FragPipeAnalystR/) including several tutorial to get started.
+Check [documentation](https://www.nesvilab.org/FragPipeAnalystR/) including several tutorials to get started.
 
 ## Installation
 
