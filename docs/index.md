@@ -19,6 +19,9 @@ renv::install("Nesvilab/FragPipeAnalystR")
 renv::install("nicolerg/ssGSEA2")
 ```
 
+## Get started
+To use FragPipeAnalyst R, follow the same instruction for [preparing the input file for FragPipe-Analyst](https://fragpipe-analyst-doc.nesvilab.org/Formatting.html)
+
 ## Tutorial
 
 - [LFQ AP-MS protein level analysis](global_LFQ_prot_tutorial.html) 
