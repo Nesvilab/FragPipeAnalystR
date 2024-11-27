@@ -20,7 +20,7 @@ renv::install("nicolerg/ssGSEA2")
 ```
 
 ## Get started
-To use FragPipeAnalyst R, follow the same instruction for [preparing the input file for FragPipe-Analyst](https://fragpipe-analyst-doc.nesvilab.org/Formatting.html)
+To use FragPipeAnalystR, follow the same instruction for [preparing the input file for FragPipe-Analyst](https://fragpipe-analyst-doc.nesvilab.org/Formatting.html).
 
 ## Tutorial
 
