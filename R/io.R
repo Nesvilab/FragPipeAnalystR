@@ -486,7 +486,8 @@ make_se_customized <- function(proteins_unique, columns, expdesign, log2transfor
     )
   }
 
-  colnames(raw)[matched] <- expdesign$label
+  rownames(expdesign) <- expdesign$sample_name
+  colnames(raw)[matched] <- expdesign$sample_name
   raw <- raw[, !is.na(colnames(raw))][rownames(expdesign)]
 
   # Select the rowData

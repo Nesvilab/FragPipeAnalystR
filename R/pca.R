@@ -1,6 +1,6 @@
 #' @export
 plot_pca <- function(dep, x = 1, y = 2, indicate = c("condition", "replicate"),
-                     label = FALSE, n = 500, point_size = 8, label_size = 3, plot = TRUE, ID_col = "label", exp = NULL, scale=F, interactive = F) {
+                     label = FALSE, n = 500, point_size = 8, label_size = 3, plot = TRUE, ID_col = "sample_name", exp = NULL, scale=F, interactive = F) {
   if (is.null(exp)) {
     exp <- metadata(dep)$exp
   }
