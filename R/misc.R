@@ -216,7 +216,7 @@ plot_feature <- function(se, protein, index=NULL,
 }
 
 #' @export
-plot_feature_numbers <- function(se, exp=NULL, feature="Proteins") {
+plot_feature_numbers <- function(se, exp=NULL, feature="Proteins", fill="condition") {
   # Show error if input is not the required classes
   assertthat::assert_that(inherits(se, "SummarizedExperiment"))
 
@@ -265,7 +265,7 @@ plot_feature_numbers <- function(se, exp=NULL, feature="Proteins") {
       summarize(n = n(), sum = sum(bin)) %>%
       left_join(., data.frame(colData(se)), by = c("ID"="label"))
 
-    p <- ggplot(stat, aes(x = sample_name, y = sum, fill = condition)) +
+    p <- ggplot(stat, aes(x = sample_name, y = sum, fill = .data[[fill]])) +
       geom_col() +
       labs(title = paste0("Number of ", feature, " per Sample (Total Number: ", dim(assay(se))[1], ")"),
            x = "", y = paste0("Number of ", feature)) +
