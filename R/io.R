@@ -391,8 +391,8 @@ make_unique <- function(proteins, names, ids, delim = ";") {
   # If there is no name, the ID will be taken.
   proteins_unique <- proteins %>%
     dplyr::mutate(
-      name = gsub(paste0(delim, ".*"), "", get(names)),
-      ID = gsub(paste0(delim, ".*"), "", get(ids)),
+      name = get(names),
+      ID = get(ids),
       name = make.unique(ifelse(name == "" | is.na(name), ID, name))
     )
   return(proteins_unique)
