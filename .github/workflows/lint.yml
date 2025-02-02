@@ -28,7 +28,7 @@ jobs:
       - name: install required library
         run: |
           sudo apt-get update
-          sudo apt-get install libnetcdf19 libcurl4-openssl-dev libglpk-dev libnetcdf-dev libharfbuzz-dev libfribidi-dev
+          sudo apt-get install libnetcdf19 libcurl4-openssl-dev libglpk-dev libnetcdf-dev libharfbuzz-dev libfribidi-dev libfontconfig1-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev
       - uses: actions/checkout@v3
       - name: Setup R
         uses: r-lib/actions/setup-r@v2
