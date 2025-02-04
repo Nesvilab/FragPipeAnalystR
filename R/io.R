@@ -65,14 +65,19 @@ readQuantTable <- function(quant_table_path, type = "TMT", level=NULL, log2trans
     }
   } else { # DIA
     if (level == "peptide") {
-      # validate(fragpipe_DIA_input_test(temp_data))
-      # temp_data <- temp_data[!grepl("contam", temp_data$Protein),]
-      temp_data <- temp_data %>% select(.,-c("Proteotypic", "Precursor.Charge")) %>%
-        group_by(Protein.Group, Protein.Names, Protein.Ids, Genes, Stripped.Sequence) %>%
-        summarise_if(is.numeric, max, na.rm=T)
-      temp_data[sapply(temp_data, is.infinite)] <- NA
-      temp_data$Index <- paste0(temp_data$Protein.Ids, "_", temp_data$Stripped.Sequence)
-      temp_data <- temp_data %>% select(Index, everything())
+      if (!"SequenceWindow" %in% colnames(temp_data)) {
+        # validate(fragpipe_DIA_input_test(temp_data))
+        # temp_data <- temp_data[!grepl("contam", temp_data$Protein),]
+        temp_data <- temp_data %>% select(.,-c("Proteotypic", "Precursor.Charge")) %>%
+          group_by(Protein.Group, Protein.Names, Protein.Ids, Genes, Stripped.Sequence) %>%
+          summarise_if(is.numeric, max, na.rm=T)
+        temp_data[sapply(temp_data, is.infinite)] <- NA
+        temp_data$Index <- paste0(temp_data$Protein.Ids, "_", temp_data$Stripped.Sequence)
+        temp_data <- temp_data %>% select(Index, everything())
+      } else {
+        mut.cols <- colnames(temp_data)[!colnames(temp_data) %in% c("Index", "ProteinID", "Gene", "Peptide", "SequenceWindow")]
+        temp_data[mut.cols] <- sapply(temp_data[mut.cols], as.numeric)
+      }
     }
   }
   return(temp_data)
@@ -264,9 +269,14 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
       dimnames(data_se) <- list(dimnames(data_se)[[1]], colData(data_se)$sample_name)
       colData(data_se)$label <- colData(data_se)$sample_name
     } else { # level == "peptide"
-      data_unique <- make_unique(quant_table, "Protein.Group", "Index")
+      if ("SequenceWindow" %in% colnames(quant_table)) { # single-site
+        data_unique <- make_unique(quant_table, "ProteinID", "Index")
+      } else {
+        data_unique <- make_unique(quant_table, "Protein.Group", "Index")
+      }
       cols <- colnames(data_unique)
-      selected_cols <- which(!(cols %in% c("Index", "Protein.Group", "Protein.Ids", "Stripped.Sequence", "Protein.Names", "Genes", "First.Protein.Description", "ID", "name")))
+      selected_cols <- which(!(cols %in% c("Index", "Protein.Group", "Protein.Ids", "Stripped.Sequence", "Protein.Names", "Genes", "First.Protein.Description", "ID", "name",
+                                           "Gene", "ProteinID", "Peptide", "SequenceWindow")))
       # test_match_DIA_column_design(data_unique, selected_cols, exp_design)
       data_se <- make_se_customized(data_unique, selected_cols, exp_design, log2transform=log2transform, exp="DIA", level="peptide")
       dimnames(data_se) <- list(dimnames(data_se)[[1]], colData(data_se)$sample_name)
