@@ -1,5 +1,5 @@
 #' @export
-plot_cvs <- function(se, id="ID", scale=T, check.names=T) {
+plot_cvs <- function(se, id="label", scale=T, check.names=F) {
 
   ## backtransform data
   untransformed_intensity<- 2^(assay(se))
@@ -34,6 +34,7 @@ plot_cvs <- function(se, id="ID", scale=T, check.names=T) {
                  linetype="dashed") +
       scale_x_continuous(labels = scales::percent, limits=c(0, 1)) +
       labs(title= 'Sample Coefficient of Variation', x="Coefficient of Variation", y="Count") +
+      theme_bw() +
       theme(plot.title = element_text(hjust = 0.5,face = "bold"), axis.text.x = element_text(angle=90, hjust=1, vjust=0.5))
   } else {
     p1 <- ggplot(cvs_group, aes(cvs, color=condition, fill=condition)) +
@@ -44,6 +45,7 @@ plot_cvs <- function(se, id="ID", scale=T, check.names=T) {
                  linetype="dashed") +
       scale_x_continuous(labels = scales::percent) +
       labs(title= 'Sample Coefficient of Variation', x="Coefficient of Variation", y="Count") +
+      theme_bw() +
       theme(plot.title = element_text(hjust = 0.5,face = "bold"), axis.text.x = element_text(angle=90, hjust=1, vjust=0.5))
   }
 
