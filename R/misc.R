@@ -1,5 +1,5 @@
 #' @export
-plot_cvs <- function(se, id="label", scale=T, check.names=F) {
+plot_cvs <- function(se, id="sample_name", scale=T, check.names=F) {
 
   ## backtransform data
   untransformed_intensity<- 2^(assay(se))
@@ -63,7 +63,7 @@ coef_variation <- function(x) {
 
 #' @export
 plot_feature <- function(se, protein, index=NULL,
-                         type="boxplot", id="label", interactive=F) {
+                         type="boxplot", id="sample_name", interactive=F) {
   assertthat::assert_that(inherits(se, "SummarizedExperiment"),
                           is.character(protein),
                           is.character(type))
