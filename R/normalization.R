@@ -37,14 +37,9 @@ PTM_normalization <- function(ptm_se, se, print_progress=F) {
 
   inter_sample <- intersect(colData(ptm_se)$sample_name, colData(se)$sample_name)
 
-  p_sample_map <- colData(se)[c("sample_name", "label")]
-  rownames(p_sample_map) <- p_sample_map$sample_name
-  psite_sample_map <- colData(ptm_se)[c("sample_name", "label")]
-  rownames(psite_sample_map) <- psite_sample_map$sample_name
-
-  psite_df <- as.data.frame(psite_df[,c("ProteinID", "Index", psite_sample_map[inter_sample, "label"])])
+  psite_df <- as.data.frame(psite_df[,c("ProteinID", "Index", inter_sample)])
   colnames(psite_df) <- c("ProteinID", "Index", inter_sample)
-  prot_df <- as.data.frame(prot_df[,c("ProteinID", p_sample_map[inter_sample, "label"])])
+  prot_df <- as.data.frame(prot_df[,c("ProteinID", inter_sample)])
   colnames(prot_df) <- c("ProteinID", inter_sample)
 
   prot_sort_df <- data.frame(ProteinID = inter_prot, stringsAsFactors = F) %>%
@@ -147,12 +142,12 @@ PTM_normalization <- function(ptm_se, se, print_progress=F) {
 
   subpsite = data.frame(sites_windows,  dm, stringsAsFactors = F)
   rm(dm)
-  colnames(subpsite) = c("Index", psite_sample_map[inter_sample, "label"])
+  colnames(subpsite) = c("Index", inter_sample)
   rownames(subpsite) <- subpsite$Index
   cat("get subpsite", "\n")
 
   normalized_se <- ptm_se
-  normalized_se <- normalized_se[subpsite$Index, psite_sample_map[inter_sample, "label"]]
+  normalized_se <- normalized_se[subpsite$Index, inter_sample]
   assay(normalized_se) <- subpsite[,-c(1)]
 
   return(normalized_se)
