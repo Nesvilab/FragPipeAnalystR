@@ -18,11 +18,6 @@ plot_missval_heatmap <- function(se) {
   missval <- df[apply(df, 1, function(x) any(is.na(x))), ]
   missval <- ifelse(is.na(missval), 0, 1)
 
-  # use sample name for the heatmap
-  temp <- colData(se)
-  rownames(temp) <- temp$label
-  colnames(missval) <- temp[colnames(missval), "sample_name"]
-
   # Plot binary heatmap
   ht2 <- Heatmap(missval,
     col = c("white", "black"),
@@ -162,12 +157,6 @@ plot_correlation_heatmap <- function(dep, significant = FALSE, lower = -1, upper
 
   # Calculate correlation matrix
   data <- assay(dep)
-
-  # use sample name for the heatmap
-  temp <- colData(dep)
-  rownames(temp) <- temp$label
-  colnames(data) <- temp[colnames(data), "sample_name"]
-
   cor_mat <- cor(data, use = use)
   lower <- min(cor_mat)
   upper <- max(cor_mat)
