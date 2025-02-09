@@ -28,7 +28,7 @@ make.unique.2 <- function(x, sep = ".") {
 }
 
 # internal function to read quantification table
-readQuantTable <- function(quant_table_path, type = "TMT", level=NULL, log2transform = F, exp_type=NULL) {
+readQuantTable <- function(quant_table_path, type = "TMT", level=NULL, log2transform = F, exp_type=NULL, additional_cols=NULL) {
   temp_data <- read.table(quant_table_path,
     header = TRUE,
     fill = TRUE, # to fill any missing data
@@ -43,7 +43,11 @@ readQuantTable <- function(quant_table_path, type = "TMT", level=NULL, log2trans
   if (type == "TMT") {
     # validate(tmt_input_test(temp_data))
     # convert columns into numeric
-    mut.cols <- colnames(temp_data)[!colnames(temp_data) %in% c("Index", "Gene", "Peptide", "NumberPSM", "ProteinID", "MaxPepProb", "SequenceWindow", "ReferenceIntensity")]
+    if (is.null(additional_cols)) {
+      mut.cols <- colnames(temp_data)[!colnames(temp_data) %in% c("Index", "Gene", "Peptide", "NumberPSM", "ProteinID", "MaxPepProb", "SequenceWindow", "ReferenceIntensity")]
+    } else {
+      mut.cols <- colnames(temp_data)[!colnames(temp_data) %in% c("Index", "Gene", "Peptide", "NumberPSM", "ProteinID", "MaxPepProb", "SequenceWindow", "ReferenceIntensity", additional_cols)]
+    }
     temp_data[mut.cols] <- sapply(temp_data[mut.cols], as.numeric)
   } else if (type == "LFQ") {
     if (level == "peptide") {
@@ -65,7 +69,10 @@ readQuantTable <- function(quant_table_path, type = "TMT", level=NULL, log2trans
     }
   } else { # DIA
     if (level == "peptide") {
-      if (!"SequenceWindow" %in% colnames(temp_data)) {
+      if ("SequenceWindow" %in% colnames(temp_data)) {
+        print("Error: wrong format. Are you using single-site report? Switch to use level=site to correctly read the file")
+        return(NULL)
+      } else {
         # validate(fragpipe_DIA_input_test(temp_data))
         # temp_data <- temp_data[!grepl("contam", temp_data$Protein),]
         temp_data <- temp_data %>% select(.,-c("Proteotypic", "Precursor.Charge")) %>%
@@ -74,10 +81,18 @@ readQuantTable <- function(quant_table_path, type = "TMT", level=NULL, log2trans
         temp_data[sapply(temp_data, is.infinite)] <- NA
         temp_data$Index <- paste0(temp_data$Protein.Ids, "_", temp_data$Stripped.Sequence)
         temp_data <- temp_data %>% select(Index, everything())
-      } else {
-        mut.cols <- colnames(temp_data)[!colnames(temp_data) %in% c("Index", "ProteinID", "Gene", "Peptide", "SequenceWindow")]
-        temp_data[mut.cols] <- sapply(temp_data[mut.cols], as.numeric)
       }
+    } else if (level == "site") {
+      if (!"SequenceWindow" %in% colnames(temp_data)) {
+        print("Error: no SequenceWindow column found in single-site report.")
+        return(NULL)
+      }
+      if (is.null(additional_cols)) {
+        mut.cols <- colnames(temp_data)[!colnames(temp_data) %in% c("Index", "ProteinID", "Gene", "Peptide", "SequenceWindow")]
+      } else {
+        mut.cols <- colnames(temp_data)[!colnames(temp_data) %in% c("Index", "ProteinID", "Gene", "Peptide", "SequenceWindow", additional_cols)]
+      }
+      temp_data[mut.cols] <- sapply(temp_data[mut.cols], as.numeric)
     }
   }
   return(temp_data)
@@ -164,7 +179,7 @@ readExpDesign <- function(exp_anno_path, type = "TMT", lfq_type="Intensity", low
 # - experiment annotation file
 #' @export
 make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", level = NULL, exp_type=NULL,
-                               log2transform = NULL, lfq_type = "Intensity", gencode = F) {
+                               log2transform = NULL, lfq_type = "Intensity", gencode = F, additional_cols=NULL) {
   if (type == "TMT" & is.null(level)) {
     level <- "gene"
   } else if (is.null(level)) {
@@ -177,12 +192,12 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
     log2transform <- F
   }
 
-  if (!level %in% c("gene", "protein", "peptide", "glycan")) {
-    cat(paste0("The specified level: ", level, " is not a valid level. Available levels are gene, protein, and peptide.\n"))
+  if (!level %in% c("gene", "protein", "peptide", "site", "glycan")) {
+    cat(paste0("The specified level: ", level, " is not a valid level. Available levels are gene, protein, site, and peptide.\n"))
     return(NULL)
   }
 
-  quant_table <- readQuantTable(quant_table_path, type = type, level=level, exp_type=exp_type)
+  quant_table <- readQuantTable(quant_table_path, type = type, level=level, exp_type=exp_type, additional_cols=additional_cols)
   exp_design <- readExpDesign(exp_anno_path, type = type, lfq_type = lfq_type)
   if (type == "LFQ") {
     quant_table <- quant_table[!grepl("contam", quant_table$Protein),]
@@ -247,7 +262,12 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
       }
       data_unique <- make_unique(quant_table, "Genes", "Protein.Group")
       cols <- colnames(data_unique)
-      selected_cols <- which(!(cols %in% c("Protein.Group", "Protein.Ids", "Protein.Names", "Genes", "First.Protein.Description", "ID", "name")))
+      if (is.null(additional_cols)) {
+        selected_cols <- which(!(cols %in% c("Protein.Group", "Protein.Ids", "Protein.Names", "Genes", "First.Protein.Description", "ID", "name")))
+      } else {
+        selected_cols <- which(!(cols %in% c("Protein.Group", "Protein.Ids", "Protein.Names", "Genes", "First.Protein.Description", "ID", "name",
+                                             additional_cols)))
+      }
       # TODO: use DIA function
       # test_match_DIA_column_design(data_unique, selected_cols, exp_design)
       data_se <- make_se_customized(data_unique, selected_cols, exp_design,
@@ -261,22 +281,31 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
       quant_table$Index <- quant_table$Genes
       data_unique <- make_unique(quant_table, "Genes", "Index")
       cols <- colnames(data_unique)
-      selected_cols <- which(!(cols %in% c("Genes", "Index", "ID", "name")))
+      if (is.null(additional_cols)) {
+        selected_cols <- which(!(cols %in% c("Genes", "Index", "ID", "name")))
+      } else {
+        selected_cols <- which(!(cols %in% c("Genes", "Index", "ID", "name", additional_cols)))
+      }
       # TODO: use DIA function
       # test_match_DIA_column_design(data_unique, selected_cols, exp_design)
       data_se <- make_se_customized(data_unique, selected_cols, exp_design,
                                     log2transform = log2transform, exp="DIA", level="gene")
       dimnames(data_se) <- list(dimnames(data_se)[[1]], colData(data_se)$sample_name)
       colData(data_se)$label <- colData(data_se)$sample_name
-    } else { # level == "peptide"
-      if ("SequenceWindow" %in% colnames(quant_table)) { # single-site
+    } else {
+      if (level == "site") { # single-site
         data_unique <- make_unique(quant_table, "ProteinID", "Index")
-      } else {
+      } else { # level == "peptide"
         data_unique <- make_unique(quant_table, "Protein.Group", "Index")
       }
       cols <- colnames(data_unique)
-      selected_cols <- which(!(cols %in% c("Index", "Protein.Group", "Protein.Ids", "Stripped.Sequence", "Protein.Names", "Genes", "First.Protein.Description", "ID", "name",
-                                           "Gene", "ProteinID", "Peptide", "SequenceWindow")))
+      if (is.null(additional_cols)) {
+        selected_cols <- which(!(cols %in% c("Index", "Protein.Group", "Protein.Ids", "Stripped.Sequence", "Protein.Names", "Genes", "First.Protein.Description", "ID", "name",
+                                             "Gene", "ProteinID", "Peptide", "SequenceWindow")))
+      } else {
+        selected_cols <- which(!(cols %in% c("Index", "Protein.Group", "Protein.Ids", "Stripped.Sequence", "Protein.Names", "Genes", "First.Protein.Description", "ID", "name",
+                                             "Gene", "ProteinID", "Peptide", "SequenceWindow", additional_cols)))
+      }
       # test_match_DIA_column_design(data_unique, selected_cols, exp_design)
       data_se <- make_se_customized(data_unique, selected_cols, exp_design, log2transform=log2transform, exp="DIA", level="peptide")
       dimnames(data_se) <- list(dimnames(data_se)[[1]], colData(data_se)$sample_name)
@@ -303,31 +332,42 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
     overlapped_samples <- intersect(colnames(data_unique), temp_exp_design$label)
     if (level == "gene") {
       interest_cols <- c("Index", "NumberPSM", "ProteinID", "MaxPepProb", "ReferenceIntensity", "name", "ID")
+      if (!is.null(additional_cols)) {
+        interest_cols <- c(interest_cols, additional_cols)
+      }
       data_unique <- data_unique[, colnames(data_unique) %in% c(interest_cols, overlapped_samples)]
       temp_exp_design <- temp_exp_design[temp_exp_design$label %in% overlapped_samples, ]
       cols <- colnames(data_unique)
       selected_cols <- which(!(cols %in% interest_cols))
     } else if (level == "protein") {
       interest_cols <- c("Index", "NumberPSM", "Gene", "ProteinID", "MaxPepProb", "ReferenceIntensity", "name", "ID")
+      if (!is.null(additional_cols)) {
+        interest_cols <- c(interest_cols, additional_cols)
+      }
       data_unique <- data_unique[, colnames(data_unique) %in% c(interest_cols, overlapped_samples)]
       temp_exp_design <- temp_exp_design[temp_exp_design$label %in% overlapped_samples, ]
       cols <- colnames(data_unique)
       selected_cols <- which(!(cols %in% interest_cols))
     } else if (level == "peptide" | level == "site") {
       interest_cols <- c("Index", "Gene", "Peptide", "NumberPSM", "ProteinID", "SequenceWindow", "MaxPepProb", "ReferenceIntensity", "name", "ID")
+      if (!is.null(additional_cols)) {
+        interest_cols <- c(interest_cols, additional_cols)
+      }
       data_unique <- data_unique[, colnames(data_unique) %in% c(interest_cols, overlapped_samples)]
       temp_exp_design <- temp_exp_design[temp_exp_design$label %in% overlapped_samples, ]
       cols <- colnames(data_unique)
       selected_cols <- which(!(cols %in% interest_cols))
     } else {
       interest_cols <- c("Index", "Gene", "ProteinID", "Peptide", "SequenceWindow", "Start", "End", "MaxPepProb", "ReferenceIntensity", "name", "ID")
+      if (!is.null(additional_cols)) {
+        interest_cols <- c(interest_cols, additional_cols)
+      }
       data_unique <- data_unique[, colnames(data_unique) %in% c(interest_cols, overlapped_samples)]
       temp_exp_design <- temp_exp_design[temp_exp_design$label %in% overlapped_samples, ]
       cols <- colnames(data_unique)
       selected_cols <- which(!(cols %in% interest_cols))
     }
     data_unique[selected_cols] <- apply(data_unique[selected_cols], 2, as.numeric)
-
 
     # test_match_tmt_column_design(data_unique, selected_cols, temp_exp_design)
     # TMT-I report is already log2 transformed
