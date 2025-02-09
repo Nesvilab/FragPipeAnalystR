@@ -33,6 +33,10 @@ plot_missval_heatmap(ccrcc)
 plot_feature_numbers(ccrcc)
 ```
 
+```{r, include=T, warning=F}
+plot_cvs(ccrcc)
+```
+
 You may want to check some of known markers through box plots:
 
 ``` {r include=T, warning=F}

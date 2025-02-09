@@ -1,5 +1,5 @@
 ---
-title: "Phosphopeptide Analysis using FragPipeAnalystR"
+title: "TMT Phosphopeptide Analysis using FragPipeAnalystR"
 output:
   html_document:
     keep_md: yes
@@ -8,6 +8,10 @@ output:
 
 ``` r
 library(FragPipeAnalystR)
+```
+
+```
+## 
 ```
 
 ## Introduction
@@ -37,7 +41,7 @@ plot_pca(se_phospho)
 
 ![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
 
-or heatmap
+heatmap
 
 ``` r
 plot_correlation_heatmap(se_phospho)
@@ -45,7 +49,15 @@ plot_correlation_heatmap(se_phospho)
 
 ![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
 
-Both of these plots show that protein phosphorylation status of tumor and normal adjacent tumors (NATs) is quite different.
+or CV plot
+
+``` r
+plot_cvs(se_phospho)
+```
+
+![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
+
+All of these plots show that protein phosphorylation status of tumor and normal adjacent tumors (NATs) is quite different.
 
 ## Normalization
 
@@ -72,7 +84,7 @@ plot_feature(se_phospho, c("P14618_Y148", # PKM_Y146
                            "Q13541_S65"))
 ```
 
-![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
+![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
 
 ### Boxplot after normalization
 
@@ -82,7 +94,7 @@ plot_feature(normalized_se, c("P14618_Y148", # PKM_Y146
                                           "Q13541_S65"))
 ```
 
-![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
 
 ### Boxplot of parent proteins
 
@@ -92,7 +104,7 @@ plot_feature(se, c("P14618",
                    "Q13541"))
 ```
 
-![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
 
 
 ## Differential expression (DE) analysis
@@ -113,7 +125,7 @@ de_result_updated <- add_rejections(de_result)
 plot_volcano(de_result_updated, "Tumor_vs_NAT")
 ```
 
-![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
+![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
 
 As you can see, there are many phosphosites upregulated and downregulated in this comparison. This gives a lot of research opportunities. For example, CAK2 (P51636) has been associated with [maintaining kidney cancer malignant](https://pubmed.ncbi.nlm.nih.gov/30288056/). Further investigating this phoshphosite (S36) might help us understand its mechanism. One thing that needs to be noted here is that the abundance of phosphopeptides is usually correlated with its protein abundance, so it might be just because the protein abundance of CAK2 is upregulated in ccRCC. It might be worth to check with the global proteome available as well. 
 
@@ -131,7 +143,7 @@ normalized_de_result_updated <- add_rejections(normalized_de_result)
 plot_volcano(de_result_updated, "Tumor_vs_NAT")
 ```
 
-![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
 
 ## Enrichment analysis
 One of the key difference between peptide-level analysis of PTMs we demonstrated here and protein level analysis is that PTMs usually act in a site-specific manner. Here, we provide the way to help users perform enrichment analysis site-specifically through creating the input file you needed for [PTM-SEA](https://doi.org/10.1074/mcp.tir118.000943).
@@ -184,7 +196,7 @@ visualize_PTMSEA("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result
 ## /Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/PTMSEA_new/result/ccRCC-combined.gct 603 rows, 1 cols, 7 row descriptors, 0 col descriptors
 ```
 
-![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
+![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
 
 You may also select particular gene set of interests. For example, following code snippets demonstrate the result on PKC and AKT protein kinases, respectively.
 
@@ -204,7 +216,7 @@ visualize_PTMSEA("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result
 ## /Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/PTMSEA_new/result/ccRCC-combined.gct 603 rows, 1 cols, 7 row descriptors, 0 col descriptors
 ```
 
-![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
+![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-15-1.png)<!-- -->
 
 
 ``` r
@@ -222,7 +234,7 @@ visualize_PTMSEA("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result
 ## /Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/PTMSEA_new/result/ccRCC-combined.gct 603 rows, 1 cols, 7 row descriptors, 0 col descriptors
 ```
 
-![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-15-1.png)<!-- -->
+![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
                                                       
 Alternatively, FragPipeAnalystR also provides ways to generate input and visualization for the [Kinase Library](https://kinase-library.phosphosite.org/). Here is the example of generating the input file:
 
@@ -238,7 +250,7 @@ And here is the result visualization:
 visualize_kinome("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result/kinome_result/enrichment-analysis-result-table.txt")
 ```
 
-![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-17-1.png)<!-- -->
+![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-18-1.png)<!-- -->
 
 Similar to `visualize_PTMSEA`, users could specify the concepts of interests.
 
@@ -249,7 +261,7 @@ visualize_kinome("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result
                  labels=AKT_labels)
 ```
 
-![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-18-1.png)<!-- -->
+![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-19-1.png)<!-- -->
 
 
 ``` r
@@ -258,7 +270,7 @@ visualize_kinome("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/result
                  labels=PKC_labels)
 ```
 
-![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-19-1.png)<!-- -->
+![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-20-1.png)<!-- -->
 
 
 
