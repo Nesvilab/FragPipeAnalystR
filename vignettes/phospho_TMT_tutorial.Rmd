@@ -18,7 +18,7 @@ se <- make_se_from_files("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscrip
 ```
 
 ```{r, warning=F}
-se_phospho <- make_se_from_files("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/TMT_phospho_4plex/ratio_single-site_MD.tsv", "/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/TMT_4plex/experiment_annotation_clean.tsv", level="peptide", type = "TMT", exp_type="phospho")
+se_phospho <- make_se_from_files("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/TMT_phospho_4plex/ratio_single-site_MD.tsv", "/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/TMT_4plex/experiment_annotation_clean.tsv", level="site", type = "TMT", exp_type="phospho")
 ```
 
 ## QC plots
@@ -28,7 +28,7 @@ Then, you should able to observe the data through various plots supported. For e
 plot_pca(se_phospho)
 ```
 
-heatmap
+or heatmap
 ```{r, include=T, warning=F}
 plot_correlation_heatmap(se_phospho)
 ```
