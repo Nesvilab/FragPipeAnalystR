@@ -218,9 +218,22 @@ plot_feature <- function(se, protein, index=NULL,
 }
 
 #' @export
-plot_feature_numbers <- function(se, exp=NULL, feature="Proteins", fill="condition") {
+plot_feature_numbers <- function(se, exp=NULL, feature=NULL, fill="condition") {
   # Show error if input is not the required classes
   assertthat::assert_that(inherits(se, "SummarizedExperiment"))
+
+  if (is.null(feature)) {
+    if (metadata(se)$level == "protein") {
+      feature <- "Proteins"
+    } else if (metadata(se)$level == "gene") {
+      feature <- "Peptides"
+    } else if (metadata(se)$level == "peptide") {
+      feature <- "Peptides"
+    } else if (metadata(se)$level == "site") {
+      feature <- "Sites"
+    }
+  }
+
 
   if (is.null(exp)) {
     exp <- metadata(se)$exp
@@ -259,15 +272,14 @@ plot_feature_numbers <- function(se, exp=NULL, feature="Proteins", fill="conditi
       gather(ID, bin, -rowname) %>%
       mutate(bin = ifelse(is.na(bin), 0, 1))
 
-
     # Summarize the number of proteins identified
     # per sample and generate a barplot
     stat <- df %>%
       group_by(ID) %>%
       summarize(n = n(), sum = sum(bin)) %>%
-      left_join(., data.frame(colData(se)), by = c("ID"="label"))
+      left_join(., data.frame(colData(se)), by = c("ID"="sample_name"))
 
-    p <- ggplot(stat, aes(x = sample_name, y = sum, fill = .data[[fill]])) +
+    p <- ggplot(stat, aes(x = ID, y = sum, fill = .data[[fill]])) +
       geom_col() +
       labs(title = paste0("Number of ", feature, " per Sample (Total Number: ", dim(assay(se))[1], ")"),
            x = "", y = paste0("Number of ", feature)) +
