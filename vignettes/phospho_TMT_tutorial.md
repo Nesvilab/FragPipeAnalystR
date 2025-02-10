@@ -5,15 +5,6 @@ output:
     keep_md: yes
 ---
 
-
-``` r
-library(FragPipeAnalystR)
-```
-
-```
-## 
-```
-
 ## Introduction
 One of the reasons we created `FragPipeAnalystR` is to support peptide-level analysis of post-translational modifications (PTM). Here, we used three plex sets of TMT phosphoproteomics experiemnt from the previously published [clear cell renal cell carcinoma study (ccRCC)](https://www.sciencedirect.com/science/article/pii/S0092867419311237?via%3Dihub). After the phosphoproteomics data is processed by FragPipe, you should be able to get the reports produced by TMT-Integrator. Or you can download the report used in the tutorial [here](https://drive.google.com/drive/u/2/folders/1x8DCxGKdsZQmYGsv3vSWfj1IYRPzykmT).
 
@@ -23,12 +14,20 @@ The first step is always the same to read the data. Note that we specify the `le
 
 
 ``` r
+library(FragPipeAnalystR)
+```
+
+```
+## 
+```
+
+``` r
 se <- make_se_from_files("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/TMT_4plex/ratio_protein_MD.tsv", "/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/TMT_4plex/experiment_annotation_clean.tsv", level="protein", type = "TMT")
 ```
 
 
 ``` r
-se_phospho <- make_se_from_files("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/TMT_phospho_4plex/ratio_single-site_MD.tsv", "/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/TMT_4plex/experiment_annotation_clean.tsv", level="peptide", type = "TMT", exp_type="phospho")
+se_phospho <- make_se_from_files("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/TMT_phospho_4plex/ratio_single-site_MD.tsv", "/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/TMT_4plex/experiment_annotation_clean.tsv", level="site", type = "TMT", exp_type="phospho")
 ```
 
 ## QC plots
@@ -41,7 +40,7 @@ plot_pca(se_phospho)
 
 ![](phospho_TMT_tutorial_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
 
-heatmap
+or heatmap
 
 ``` r
 plot_correlation_heatmap(se_phospho)
