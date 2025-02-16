@@ -307,11 +307,13 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
                                              "Gene", "ProteinID", "Peptide", "SequenceWindow", additional_cols)))
       }
       # test_match_DIA_column_design(data_unique, selected_cols, exp_design)
-      data_se <- make_se_customized(data_unique, selected_cols, exp_design, log2transform=log2transform, exp="DIA", level="peptide")
+      data_se <- make_se_customized(data_unique, selected_cols, exp_design, log2transform=log2transform, exp="DIA", level=level)
       dimnames(data_se) <- list(dimnames(data_se)[[1]], colData(data_se)$sample_name)
       colData(data_se)$label <- colData(data_se)$sample_name
     }
-    rowData(data_se)$Gene <- rowData(data_se)$Genes
+    if (level == "peptide") {
+      rowData(data_se)$Gene <- rowData(data_se)$Genes
+    }
   } else { # TMT
     temp_exp_design <- exp_design
     # sample without specified condition will be removed
