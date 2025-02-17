@@ -1,7 +1,7 @@
 Package: FragPipeAnalystR
 Type: Package
 Title: FragPipe downstream analysis in R
-Version: 1.0.3
+Version: 1.0.4
 Author: Yi Hsiao
 Maintainer: Yi Hsiao <yihsiao@umich.edu>
 Description: More about what it does (maybe more than one line)
