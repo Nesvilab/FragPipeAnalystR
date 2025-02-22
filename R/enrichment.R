@@ -66,6 +66,9 @@ GSEA_test <- function(se, col=NULL, database="GO Biological Process", file=NULL,
 
 #' @export
 plot_GSEA <- function(gsea_result, categroies=15) {
+  if (!"Count" %in% colnames(gsea_result)) {
+    gsea_result$Count <- str_count(gsea_result$core_enrichment, "/")
+  }
   temp <- gsea_result[order(gsea_result$NES, decreasing = T),]
   ID_selected <- temp[c(1:categroies, (dim(temp)[1]-categroies + 1):dim(temp)[1]),"ID"]
   temp <- temp[temp$ID %in% ID_selected,]
