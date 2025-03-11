@@ -1,7 +1,7 @@
 Package: FragPipeAnalystR
 Type: Package
 Title: FragPipe downstream analysis in R
-Version: 1.0.4
+Version: 1.0.5
 Author: Yi Hsiao
 Maintainer: Yi Hsiao <yihsiao@umich.edu>
 Description: More about what it does (maybe more than one line)
@@ -47,6 +47,7 @@ Suggests:
     knitr,
     lintr,
     org.Hs.eg.db,
+    EnsDb.Hsapiens.v86,
     rcmdcheck,
     rmarkdown,
     styler,
