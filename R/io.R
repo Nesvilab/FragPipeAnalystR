@@ -360,7 +360,7 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
       cols <- colnames(data_unique)
       selected_cols <- which(!(cols %in% interest_cols))
     } else {
-      interest_cols <- c("Index", "Gene", "ProteinID", "Peptide", "SequenceWindow", "Start", "End", "MaxPepProb", "ReferenceIntensity", "name", "ID")
+      interest_cols <- c("Index", "Gene", "ProteinID", "Peptide", "SequenceWindow", "Start", "End", "MaxPepProb", "ReferenceIntensity", "name", "ID", "Spectrum Number")
       if (!is.null(additional_cols)) {
         interest_cols <- c(interest_cols, additional_cols)
       }

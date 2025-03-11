@@ -125,6 +125,7 @@ or_test <- function(se, database="GO Biological Process", backend="enrichr", dir
       for(contrast in constrast_columns) {
         df[is.na(df[[contrast]]),contrast] <- F
         significant <- df
+        significant <- significant[!is.na(significant[gsub("_significant", "_diff", contrast)]),]
         if (direction == "UP"){
           significant <- significant[(significant[gsub("_significant", "_diff", contrast)] > log2_threshold),]
         } else if (direction == "DOWN") {
@@ -135,7 +136,7 @@ or_test <- function(se, database="GO Biological Process", backend="enrichr", dir
           genes <- unique(significant$Gene)
         } else if (metadata(dep)$level == "protein" | metadata(dep)$level == "gene") {
           genes <- significant$name
-        } else if (metadata(dep)$level %in% c("peptide", "site")) {
+        } else if (metadata(dep)$level %in% c("peptide", "site", "glycan")) {
           genes <- unique(significant$Gene)
         }
 
@@ -446,7 +447,7 @@ test_ora_mod <- function(dep,
     background <- unique(row_data$ID)
   } else if (metadata(dep)$level == "protein") {
     background <- unique(gsub("[.].*", "", row_data$name))
-  } else if (metadata(dep)$level %in% c("peptide", "site")) {
+  } else if (metadata(dep)$level %in% c("peptide", "site", "glycan")) {
     background <- unique(row_data$Gene)
   }
 
@@ -482,6 +483,7 @@ test_ora_mod <- function(dep,
       # contrast column might have NA
       df[is.na(df[[contrast]]),contrast] <- F
       significant <- df
+      significant <- significant[!is.na(significant[gsub("_significant", "_diff", contrast)]),]
       if (direction == "UP"){
         significant <- significant[(significant[gsub("_significant", "_diff", contrast)] > log2_threshold),]
       } else if (direction == "DOWN") {
@@ -495,7 +497,7 @@ test_ora_mod <- function(dep,
         genes <- unique(significant$ID)
       } else if (metadata(dep)$level == "protein") {
         genes <- significant$name
-      } else if (metadata(dep)$level %in% c("peptide", "site")) {
+      } else if (metadata(dep)$level %in% c("peptide", "site", "glycan")) {
         genes <- unique(significant$Gene)
       }
 
@@ -544,7 +546,7 @@ test_ora_mod <- function(dep,
       genes <- unique(significant$ID)
     } else if (metadata(dep)$level == "protein") {
       genes <- significant$name
-    } else if (metadata$level == "peptide") {
+    } else if (metadata$level %in% c("peptide", "site", "glycan")) {
       genes <- unique(significant$Gene)
     }
 
@@ -580,7 +582,8 @@ enrichr_mod <- function(genes, databases = NULL) {
   # check gene type
   if (length(genes) != 0){
     if (all(startsWith(genes, "ENSG"))) {
-      genes_map <- ensembldb::select(EnsDb.Hsapiens.v86,
+      genes <- gsub("\\..*", "", genes)
+      genes_map <- ensembldb::select(EnsDb.Hsapiens.v86::EnsDb.Hsapiens.v86,
                                      keys= genes, keytype = "GENEID", columns = c("SYMBOL","GENEID"))
       genes <- genes_map$SYMBOL
     }
