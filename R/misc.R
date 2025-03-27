@@ -290,3 +290,73 @@ plot_feature_numbers <- function(se, exp=NULL, feature=NULL, fill="condition") {
   }
   return (p)
 }
+
+#' Plot the feature count based on the cumulative missing percentage range
+#'
+#' @param df expression dataframe
+#' @param fea_col Index column
+#' @param smp_lst A vector of samples to include
+#'
+#' @export
+plotCumulativeMissingPercent = function(se,
+                                        smp_lst = NULL,
+                                        title = ""){
+
+  df <- data.frame(assay(se))
+  if (is.null(smp_lst)) {
+    smp_lst <- colnames(df)
+  } else {
+    smp_lst <- intersect(smp_lst, colnames(df))
+  }
+
+
+  # NA counting for each feature
+  df <- data.table::setDT(df)
+  na_df <- df[, .(Index = rownames(df), NA_count = rowSums(is.na(.SD))), .SDcols = smp_lst]
+
+  # prepare data to plot
+  na_df_srt <- na_df %>%
+    dplyr::arrange(NA_count) %>%
+    dplyr::mutate(missPercent = NA_count / length(smp_lst),
+                  FeatureCount = seq_len(nrow(.)))
+
+  # find row index with missPercent == 0.5
+  row_vline <- sum(na_df_srt$missPercent <= 0.5)
+  xinter <- na_df_srt$missPercent[row_vline]
+  yinter <- na_df_srt$FeatureCount[row_vline]
+  test_annot <- yinter
+
+  # plot
+  p <- ggplot(na_df_srt, aes(x=missPercent,y=FeatureCount)) +
+    geom_line(color="#F8766D", linewidth=1.5) +
+    annotate(
+      "text",
+      x = 0.6,
+      y = nrow(df) / 5,
+      label = paste0(
+        "Complete data: ",
+        nrow(na.omit(df)),
+        "\nLess than 50% missing: ",
+        yinter,
+        "\nAll identified: ",
+        nrow(df)
+      ),
+      size = 4,
+      color = "black"
+    ) +
+    labs(
+      x = "Missing percentage",
+      y = "Cumulative feature count",
+      title = title
+    ) +
+    theme_classic() +
+    theme(
+      axis.text = element_text(size = 10),
+      axis.title = element_text(size = 10, face = "bold"),
+      plot.title = element_text(size = 12)
+    )
+
+  return(p)
+
+}
+

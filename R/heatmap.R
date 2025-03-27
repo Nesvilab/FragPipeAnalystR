@@ -465,3 +465,44 @@ get_annotation <- function(dep, indicate) {
                                     col = anno_col,
                                     show_annotation_name = TRUE)
 }
+
+#' Plot the half heatmap to show the correlation between replicate samples
+#'
+#' @param se expression dataframe
+#' @param rep_samples samples to be included. Usually the replicate samples
+#'
+#' @export
+plot_replicate_heatmap <- function(se,
+                                   rep_samples){
+  d <- assay(se)
+  samples <- rep_samples
+  corr_mat <- round(cor(d[,samples], use = "pairwise.complete.obs"), 2)
+  x_samples <- rep_samples
+  y_samples <- rep_samples
+  corr_mat <- corr_mat[x_samples, y_samples]
+
+  col_fun = circlize::colorRamp2(c(-1, 0, 1), c("#2166AC", "white", "#B2182B"))
+  ht <- Heatmap(
+    corr_mat,
+    col = col_fun,
+    cluster_rows = F,
+    cluster_columns = F,
+    rect_gp = grid::gpar(type = "none"),
+    show_heatmap_legend = T,
+    show_column_names = T,
+    show_row_names = T,
+    row_dend_side = "right",
+    row_names_side = "left",
+    cell_fun = function(j, i, x, y, w, h, fill) {
+      if (as.numeric(x) <= 1 - as.numeric(y) + 1e-6) {
+        grid::grid.rect(x, y, w, h, gp = grid::gpar(fill = fill, col = fill))
+      }
+      if (i >= j) {
+        grid::grid.text(sprintf("%.2f", corr_mat[i, j]), x, y, gp = grid::gpar(fontsize = 6.5))
+      }
+    },
+    name = "correlation"
+  )
+  gg_heatmap <- ggplotify::as.ggplot(ht)
+  return(gg_heatmap)
+}
