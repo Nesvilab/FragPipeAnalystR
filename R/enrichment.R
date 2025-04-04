@@ -762,7 +762,7 @@ prepare_kinome <- function(se, col, outfile, format="asterisk", p_col=NULL) {
       colnames(temp) <- c("peptide", "log2fc")
     } else {
       temp <- data.frame(as.data.frame(rowData(se))["SequenceWindow"],
-                         as.data.frame(rowData(se))[p_col],
+                         as.data.frame(rowData(se))[col],
                          as.data.frame(rowData(se))[p_col])
       colnames(temp) <- c("peptide", "log2fc", "p.value")
     }
