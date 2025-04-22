@@ -7,7 +7,7 @@ output:
 
 # Introduction
 
-FragPipeAnalystR is a R package intended for downstream analysis of data generated from [FragPipe](https://fragpipe.nesvilab.org/). Here we demonstrated the utility of FragPipeAnalyst by reanalyzing a clear cell renal cell carcinoma (ccRCC) data-independent acquisition (DIA) data collected by CPTAC.
+FragPipeAnalystR is a R package intended for downstream analysis of data generated from [FragPipe](https://fragpipe.nesvilab.org/). Here we demonstrated the utility of FragPipeAnalyst by reanalyzing a clear cell renal cell carcinoma (ccRCC) data-independent acquisition (DIA) data collected by CPTAC. You can download the example files from [here](https://zenodo.org/records/13147961). Files are in "DIA_4plex" folder.
 
 ## CCRCC DIA data
 

@@ -7,7 +7,7 @@ output:
 
 # Introduction
 
-Here we presented the usage of FragPipeAnalystR to reproduce AP-MS analysis previously demonstrated in the manuscript. Note that in the manuscript, we used the FragPipeAnalyst website, but you could reproduce the same analysis with FragPipeR.
+Here we presented the usage of FragPipeAnalystR to reproduce AP-MS analysis previously demonstrated in the manuscript. Note that in the manuscript, we used the FragPipeAnalyst website, but you could reproduce the same analysis with FragPipeR. You can download the example files from [here](https://zenodo.org/records/13147961). Files are in "AP-MS" folder.
 
 ## Reading input files
 ``` {r include=T, warning=F}

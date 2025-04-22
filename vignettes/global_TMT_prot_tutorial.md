@@ -7,7 +7,7 @@ output:
 
 # Introduction
 
-FragPipeAnalystR is a R package intended for FragPipe downstream analysis. We also make it compatible with the result obtained from FragPipe-Analyst. Users are able to reproduce and customize the plots generated in FragPipe-Analyst.
+FragPipeAnalystR is a R package intended for FragPipe downstream analysis. We also make it compatible with the result obtained from FragPipe-Analyst. Users are able to reproduce and customize the plots generated in FragPipe-Analyst. You can download the example files from [here](https://zenodo.org/records/13147961). Files are in "TMT_4plex" folder.
 
 ## Quick Start Example
 
@@ -20,7 +20,7 @@ library(FragPipeAnalystR)
 ```
 
 ``` r
-ccrcc <- make_se_from_files("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/TMT_4plex/abundance_protein_MD.tsv",
+ccrcc <- make_se_from_files("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/TMT_4plex/ratio_protein_MD.tsv",
                          "/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/TMT_4plex/experiment_annotation_clean.tsv",
                          type = "TMT", level = "protein")
 ```
@@ -147,7 +147,7 @@ or_result <- or_test(de_result_updated, database = "Hallmark", direction = "UP")
 ```
 
 ```
-## 773 genes are submitted
+## 772 genes are submitted
 ```
 
 ```
@@ -183,7 +183,7 @@ or_result <- or_test(de_result_updated, database = "Hallmark", direction = "DOWN
 ```
 
 ```
-## 1432 genes are submitted
+## 1431 genes are submitted
 ```
 
 ```
@@ -223,7 +223,7 @@ sessionInfo()
 ## [1] stats     graphics  grDevices datasets  utils     methods   base     
 ## 
 ## other attached packages:
-## [1] FragPipeAnalystR_1.0.1
+## [1] FragPipeAnalystR_1.0.5
 ## 
 ## loaded via a namespace (and not attached):
 ##   [1] RColorBrewer_1.1-3          rstudioapi_0.17.1          

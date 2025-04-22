@@ -7,12 +7,12 @@ output:
 
 # Introduction
 
-FragPipeAnalystR is a R package intended for FragPipe downstream analysis. We also make it compatible with the result obtained from FragPipe-Analyst. Users are able to reproduce and customize the plots generated in FragPipe-Analyst.
+FragPipeAnalystR is a R package intended for FragPipe downstream analysis. We also make it compatible with the result obtained from FragPipe-Analyst. Users are able to reproduce and customize the plots generated in FragPipe-Analyst. You can download the example files from [here](https://zenodo.org/records/13147961). Files are in "TMT_4plex" folder.
 
 ## Quick Start Example
 ``` {r include=T, warning=F}
 library(FragPipeAnalystR)
-ccrcc <- make_se_from_files("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/TMT_4plex/abundance_protein_MD.tsv",
+ccrcc <- make_se_from_files("/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/TMT_4plex/ratio_protein_MD.tsv",
                          "/Users/hsiaoyi/Documents/workspace/FragPipeR_manuscript/data/TMT_4plex/experiment_annotation_clean.tsv",
                          type = "TMT", level = "protein")
 ```
