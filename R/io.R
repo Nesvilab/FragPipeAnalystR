@@ -163,7 +163,9 @@ readExpDesign <- function(exp_anno_path, type = "TMT", lfq_type="Intensity", low
       stringsAsFactors = FALSE
     )
     # change it to lower case
-    colnames(temp_df) <- tolower(colnames(temp_df))
+    if (lowercase) {
+      colnames(temp_df) <- tolower(colnames(temp_df))
+    }
     # to support - (dash) or name starts with number in condition column
     temp_df$condition <- make.names(temp_df$condition)
     # make sure replicate column is not empty
