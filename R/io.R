@@ -75,7 +75,9 @@ readQuantTable <- function(quant_table_path, type = "TMT", level=NULL, log2trans
       } else {
         # validate(fragpipe_DIA_input_test(temp_data))
         # temp_data <- temp_data[!grepl("contam", temp_data$Protein),]
-        temp <- melt.data.table(setDT(temp_data[,!colnames(temp_data) %in% c("Proteotypic", "Precursor.Charge", "Precursor.Id", "Modified.Sequence", "First.Protein.Description")]),
+        temp <- melt.data.table(setDT(temp_data[,!colnames(temp_data) %in% c("Proteotypic", "Precursor.Charge", "Precursor.Id",
+                                                                             "Modified.Sequence", "First.Protein.Description",
+                                                                             "All Mapped Proteins", "All Mapped Genes")]),
                                 id.vars = c("Protein.Group", "Protein.Names", "Protein.Ids", "Genes", "Stripped.Sequence"),
                                 variable.name = "File.Name")
         temp_data <- as.data.frame(
@@ -306,10 +308,10 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
       cols <- colnames(data_unique)
       if (is.null(additional_cols)) {
         selected_cols <- which(!(cols %in% c("Index", "Protein.Group", "Protein.Ids", "Stripped.Sequence", "Protein.Names", "Genes", "First.Protein.Description", "ID", "name",
-                                             "Gene", "ProteinID", "Peptide", "SequenceWindow")))
+                                             "Gene", "ProteinID", "Peptide", "SequenceWindow", "All Mapped Proteins", "All Mapped Genes")))
       } else {
         selected_cols <- which(!(cols %in% c("Index", "Protein.Group", "Protein.Ids", "Stripped.Sequence", "Protein.Names", "Genes", "First.Protein.Description", "ID", "name",
-                                             "Gene", "ProteinID", "Peptide", "SequenceWindow", additional_cols)))
+                                             "Gene", "ProteinID", "Peptide", "SequenceWindow", "All Mapped Proteins", "All Mapped Genes", additional_cols)))
       }
       # test_match_DIA_column_design(data_unique, selected_cols, exp_design)
       data_se <- make_se_customized(data_unique, selected_cols, exp_design, log2transform=log2transform, exp="DIA", level=level)
