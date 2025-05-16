@@ -16,7 +16,7 @@ readResultRData <- function(file) {
   return(env[[nm]])
 }
 
-# make make.unique generates new names strat from 1 rather than nothing
+# make make.unique generates new names start from 1 rather than nothing
 make.unique.2 <- function(x, sep = ".") {
   ave(x, x, FUN = function(a) {
     if (length(a) > 1) {
@@ -75,9 +75,12 @@ readQuantTable <- function(quant_table_path, type = "TMT", level=NULL, log2trans
       } else {
         # validate(fragpipe_DIA_input_test(temp_data))
         # temp_data <- temp_data[!grepl("contam", temp_data$Protein),]
-        temp_data <- temp_data %>% select(.,-c("Proteotypic", "Precursor.Charge")) %>%
-          group_by(Protein.Group, Protein.Names, Protein.Ids, Genes, Stripped.Sequence) %>%
-          summarise_if(is.numeric, max, na.rm=T)
+        temp <- melt.data.table(setDT(temp_data[,!colnames(temp_data) %in% c("Proteotypic", "Precursor.Charge", "Precursor.Id", "Modified.Sequence", "First.Protein.Description")]),
+                                id.vars = c("Protein.Group", "Protein.Names", "Protein.Ids", "Genes", "Stripped.Sequence"),
+                                variable.name = "File.Name")
+        temp_data <- as.data.frame(
+          dcast.data.table(temp, Protein.Group+Protein.Names+Protein.Ids+Genes+Stripped.Sequence ~ File.Name,
+                           value.var = "value", fun.aggregate = function(x) max(x, na.rm=TRUE)))
         temp_data[sapply(temp_data, is.infinite)] <- NA
         temp_data$Index <- paste0(temp_data$Protein.Ids, "_", temp_data$Stripped.Sequence)
         temp_data <- temp_data %>% select(Index, everything())
