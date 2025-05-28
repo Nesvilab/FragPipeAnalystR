@@ -779,19 +779,24 @@ prepare_kinome <- function(se, col, outfile, format="asterisk", p_col=NULL) {
     } else {
       return(NULL)
     }
-    write.table(temp, outfile, quote = F, row.names = F, col.names = F, sep="\t")
+    write.table(temp, outfile, quote = F, row.names = F, col.names = T, sep="\t")
   } else {
     cat("Kinome analysis requires phosphorylation dataset. \n")
   }
 }
 
 #' @export
-visualize_kinome <- function(tsv_file, labels=NULL) {
-  data <- read.csv(tsv_file, sep = "\t", stringsAsFactors = F)
+visualize_kinome <- function(tsv_file, labels=NULL, log2fc=1, pval=0.05, legacy=F) {
+  if (legacy) {
+    data <- read.csv(tsv_file, sep = "\t", stringsAsFactors = F)
+  } else {
+    data <- fread(tsv_file, sep="\t", stringsAsFactors = F, data.table = F)
+    colnames(data)[colnames(data) %in% c("Gene Name")] <- "kinase"
+  }
   if (is.null(labels)){
     p <- ggplot(data, aes(x=dominant_enrichment_value_log2, y=dominant_adjusted_p_value_log10_abs, label=kinase)) +
       geom_point() +
-      geom_text_repel(data=subset(data, abs(dominant_enrichment_value_log2) > 1 & (dominant_adjusted_p_value_log10_abs) > 1.3)) +
+      geom_text_repel(data=subset(data, abs(dominant_enrichment_value_log2) > log2fc & (dominant_adjusted_p_value_log10_abs) > -log(pval))) +
       theme_bw() +
       theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
             panel.background = element_blank(), axis.line = element_line(colour = "black")) +

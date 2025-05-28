@@ -24,6 +24,7 @@
 #' @importFrom ComplexHeatmap row_order
 #' @importFrom ConsensusClusterPlus ConsensusClusterPlus
 #' @importFrom data.table dcast.data.table
+#' @importFrom data.table fread
 #' @importFrom data.table melt.data.table
 #' @importFrom data.table setDT
 #' @importFrom dplyr all_of
