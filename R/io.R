@@ -57,8 +57,10 @@ readQuantTable <- function(quant_table_path, type = "TMT", level=NULL, log2trans
       # validate(fragpipe_input_test(temp_data))
       # remove contam
       temp_data <- temp_data[!grepl("contam", temp_data$Protein),]
-      if (is.null(exp_type)) {
+      if (!"Modified Sequence" %in% colnames(temp_data)) {
         temp_data$Index <- paste0(temp_data$`Protein ID`, "_", temp_data$`Peptide Sequence`)
+      } else { # internally support combined_modified_peptide.tsv
+        temp_data$Index <- paste0(temp_data$`Protein ID`, "_", temp_data$`Modified Sequence`)
       }
     } else {
       # handle - (dash) in experiment column
