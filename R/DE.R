@@ -650,7 +650,7 @@ plot_peptide_volcano <- function(dep, contrast, peptides=NA, show_other_peptides
     length(add_names) == 1,
     is.logical(adjusted),
     length(adjusted) == 1,
-    metadata(se)$level == "peptide"
+    metadata(dep)$level %in% c("peptide", "site")
   )
 
   row_data <- rowData(dep, use.names = FALSE)
@@ -831,6 +831,9 @@ plot_peptide_volcano <- function(dep, contrast, peptides=NA, show_other_peptides
         geom_vline(xintercept = 0) +
         geom_point(aes(col = signif)) +
         geom_point(data = subset(df, ID %in% c(peptides)), color = "maroon", size= 3) +
+        geom_text_repel(data = subset(df, ID %in% peptides),
+                        color = "maroon",
+                        aes(label = ID)) +
         geom_text(data = data.frame(), aes(
           x = c(Inf, -Inf),
           y = c(-Inf, -Inf),
