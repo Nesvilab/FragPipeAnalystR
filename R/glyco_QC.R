@@ -34,8 +34,12 @@ N_glycan_property <- function(glycan_string){
 
 # generate a barplot for number of glycoforms based on categories
 #' @export
-plot_glycan_distribution <- function(se) {
-  df <- as.data.frame(table(sapply(gsub(" _.*", "", gsub(".*_Hex", "Hex", rownames(se))), N_glycan_property)))
+plot_glycan_distribution <- function(se, legacy=F) {
+  if (legacy) { # before FragPipe 23.0
+    df <- as.data.frame(table(sapply(gsub(" _.*", "", gsub(".*_Hex", "Hex", rownames(se))), N_glycan_property)))
+  } else {
+    df <- as.data.frame(table(sapply( gsub(".*_", "", gsub("_\\d+\\.\\d+$", "", rownames(se))), N_glycan_property)))
+  }
   colnames(df)[1] <- "Category"
   df$Category <- factor(df$Category, levels = c("sialylated",
                                                 "fuco-sialylated",
