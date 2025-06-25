@@ -231,6 +231,8 @@ plot_feature_numbers <- function(se, exp=NULL, feature=NULL, fill="condition") {
       feature <- "Peptides"
     } else if (metadata(se)$level == "site") {
       feature <- "Sites"
+    } else if (metadata(se)$level == "glycan") {
+      feature <- "Glycans"
     }
   }
 
