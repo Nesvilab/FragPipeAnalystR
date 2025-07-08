@@ -571,3 +571,12 @@ make_se_customized <- function(proteins_unique, columns, expdesign, log2transfor
 
   return(se)
 }
+
+export_se <- function(se, output_file, sep="\t", include_cols=NULL) {
+  if (is.null(include_cols)) {
+    temp <- cbind(rowData(se), assay(se))
+  } else {
+    temp <- cbind(rowData(se)[,include_cols], assay(se))
+  }
+  write.table(temp, output_file, sep=sep, quote=F, row.names = F)
+}
