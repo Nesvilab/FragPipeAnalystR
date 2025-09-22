@@ -42,7 +42,8 @@ Imports:
     clusterProfiler,
     msigdbr,
     data.table,
-    ggvenn
+    ggvenn,
+    uwot
 Suggests:
     devtools,
     ensembldb,
