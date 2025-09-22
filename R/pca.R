@@ -1,5 +1,5 @@
 #' @export
-plot_pca <- function(dep, x = 1, y = 2, indicate = c("condition", "replicate"),
+plot_pca <- function(dep, x = 1, y = 2, indicate = c("condition", "replicate"), method = 'PCA',
                      label = FALSE, n = 500, point_size = 8, label_size = 3, plot = TRUE, ID_col = "sample_name", exp = NULL, scale=F, interactive = F) {
   if (is.null(exp)) {
     exp <- metadata(dep)$exp
@@ -84,15 +84,32 @@ plot_pca <- function(dep, x = 1, y = 2, indicate = c("condition", "replicate"),
     df <- data[order(var, decreasing = TRUE)[seq_len(n)], ]
   }
 
-  # Calculate PCA
-  pca <- prcomp(t(df), scale = scale)
-  pca_df <- pca$x %>%
-    data.frame() %>%
-    rownames_to_column() %>%
-    left_join(., data.frame(colData(dep)), by = c("rowname" = ID_col))
 
-  # Calculate the percentage of variance explained
-  percent <- round(100 * pca$sdev^2 / sum(pca$sdev^2), 1)
+  if (method == 'PCA') {
+    # Calculate PCA
+    pca <- prcomp(t(df), scale = scale)
+    pca_df <- pca$x %>%
+      data.frame() %>%
+      rownames_to_column() %>%
+      left_join(., data.frame(colData(dep)), by = c("rowname" = ID_col))
+
+    # Calculate the percentage of variance explained
+    percent <- round(100 * pca$sdev^2 / sum(pca$sdev^2), 1)
+
+  } else if (method == 'MDS') {
+    # Calculate MDS
+    dist_matrix <- dist(t(df))
+    mds <- cmdscale(dist_matrix, k = ncol(dep)-1, eig = T)
+    pca_df <- mds$points %>%
+      data.frame() %>%
+      setNames(paste0("PC", 1:ncol(.))) %>%
+      rownames_to_column() %>%
+      left_join(., data.frame(colData(dep)), by = c("rowname" = ID_col))
+
+    # Calculate the percentage of variance explained
+    percent <- round(100 * mds$eig / sum(mds$eig[mds$eig > 0]), 1)
+  }
+
 
   # Make factors of indicate features
   for (feat in indicate) {
@@ -267,7 +284,7 @@ plot_pca <- function(dep, x = 1, y = 2, indicate = c("condition", "replicate"),
   } else { # static plot by ggplot2
     p <- ggplot(pca_df, aes(get(paste0("PC", x)), get(paste0("PC", y)))) +
       labs(
-        title = paste0("PCA plot - top ", n, " variable features"),
+        title = paste0(method, " plot - top ", n, " variable features"),
         x = paste0("PC", x, ": ", percent[x], "%"),
         y = paste0("PC", y, ": ", percent[y], "%")
       ) +
