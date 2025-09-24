@@ -41,7 +41,8 @@ Imports:
     vsn,
     clusterProfiler,
     msigdbr,
-    data.table
+    data.table,
+    uwot
 Suggests:
     devtools,
     ensembldb,
