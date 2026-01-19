@@ -2,7 +2,7 @@
 test_limma <- function(se, type = c("control", "all", "others", "manual"),
                        control = NULL, test = NULL,
                        design_formula = formula(~ 0 + condition),
-                       paired = FALSE) {
+                       paired = FALSE, numeric_var = NULL) {
 
   # Show error if inputs are not the required classes
   assertthat::assert_that(inherits(se, "SummarizedExperiment"),
@@ -62,7 +62,12 @@ test_limma <- function(se, type = c("control", "all", "others", "manual"),
 
   # Obtain variable factors
   for(var in variables) {
-    temp <- factor(col_data[[var]])
+    val <- col_data[[var]]
+    if (var %in% numeric_var) {
+      temp <- as.numeric(val)
+    } else {
+      temp <- factor(val)
+    }
     assign(var, temp)
   }
 
