@@ -32,7 +32,44 @@ N_glycan_property <- function(glycan_string){
   }
 }
 
-# generate a barplot for number of glycoforms based on categories
+#' Plot glycan distribution by category
+#'
+#' Creates a bar plot showing the distribution of N-glycan types based on
+#' their structural properties (sialylation, fucosylation, etc.).
+#'
+#' @param se A \code{SummarizedExperiment} object containing glycoproteomics
+#'   data at the glycan level.
+#' @param legacy Logical indicating whether to use legacy parsing for FragPipe
+#'   versions before 23.0. Default is \code{FALSE}.
+#'
+#' @return A \code{ggplot} object showing a bar plot with glycan categories:
+#'   \itemize{
+#'     \item \code{sialylated}: Contains NeuAc or NeuGc, no fucose
+#'     \item \code{fuco-sialylated}: Contains both fucose and sialic acid
+#'     \item \code{fucosylated}: Contains fucose, no sialic acid
+#'     \item \code{neutral}: No fucose or sialic acid, not oligomannose
+#'     \item \code{oligomannose}: High mannose (Hex>=5, HexNAc<=2, Fuc<=1)
+#'   }
+#'
+#' @details
+#' The glycan classification is based on the monosaccharide composition
+#' following standard N-glycan nomenclature. The color scheme follows
+#' conventions used in glycomics visualization.
+#'
+#' @examples
+#' \dontrun{
+#' # Plot glycan distribution
+#' plot_glycan_distribution(glyco_se)
+#'
+#' # For older FragPipe versions
+#' plot_glycan_distribution(glyco_se, legacy = TRUE)
+#' }
+#'
+#' @seealso \code{\link{plot_glycan_feature_numbers}}
+#'
+#' @importFrom ggplot2 ggplot aes geom_bar scale_fill_manual theme_bw theme
+#'   element_blank element_line
+#'
 #' @export
 plot_glycan_distribution <- function(se, legacy=F) {
   if (legacy) { # before FragPipe 23.0
@@ -60,7 +97,42 @@ plot_glycan_distribution <- function(se, legacy=F) {
   return(p)
 }
 
-# generate a barplot for number of glycoforms across TMT plex set, similar to plot_feature_numbers
+#' Plot glycan feature numbers across TMT plexes
+#'
+#' Creates a stacked bar plot showing the number of glycoforms identified
+#' in each TMT plex set, colored by glycan category.
+#'
+#' @param se A \code{SummarizedExperiment} object containing glycoproteomics
+#'   data at the glycan level. Must have \code{level = "glycan"} in metadata.
+#' @param exp Character string specifying the experiment type. If \code{NULL},
+#'   uses the value from metadata. Currently only "TMT" is supported.
+#' @param feature Character string for the feature label in the plot title.
+#'   Default is \code{NULL}.
+#' @param legacy Logical indicating whether to use legacy parsing for FragPipe
+#'   versions before 23.0. Default is \code{TRUE}.
+#'
+#' @return A \code{ggplot} object showing a stacked bar plot where:
+#'   \itemize{
+#'     \item X-axis: TMT plex identifiers
+#'     \item Y-axis: Number of glycoforms
+#'     \item Fill colors: Glycan categories (sialylated, fucosylated, etc.)
+#'   }
+#'   Only glycoforms with complete quantification across all samples within
+#'   each plex are counted.
+#'
+#' @examples
+#' \dontrun{
+#' # Plot glycan numbers across plexes
+#' plot_glycan_feature_numbers(glyco_se)
+#' }
+#'
+#' @seealso \code{\link{plot_glycan_distribution}}, \code{\link{plot_feature_numbers}}
+#'
+#' @importFrom ggplot2 ggplot aes geom_bar scale_fill_manual scale_y_continuous
+#'   labs theme_bw theme element_blank element_line element_text
+#' @importFrom SummarizedExperiment assay colData metadata
+#' @importFrom dplyr filter if_all
+#'
 #' @export
 plot_glycan_feature_numbers <- function(se, exp=NULL, feature=NULL, legacy=T) {
   # Show error if input is not the required classes

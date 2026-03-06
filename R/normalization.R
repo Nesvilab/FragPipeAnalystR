@@ -1,3 +1,32 @@
+#' Global normalization (median centering with MAD scaling)
+#'
+#' Performs global normalization on proteomics data by median centering
+#' followed by median absolute deviation (MAD) scaling.
+#'
+#' @param se A \code{SummarizedExperiment} object containing log2-transformed
+#'   proteomics data.
+#'
+#' @return A \code{SummarizedExperiment} object with normalized assay values.
+#'
+#' @details
+#' The normalization consists of two steps:
+#' \enumerate{
+#'   \item Median centering: Subtract the column median from each value
+#'   \item MAD scaling: Divide by the column MAD, then multiply by the median MAD
+#' }
+#' This ensures all samples have similar center and spread.
+#'
+#' @examples
+#' \dontrun{
+#' se_normalized <- GN_normalization(se)
+#' }
+#'
+#' @seealso \code{\link{MD_normalization}}, \code{\link{VSN_normalization}}
+#'
+#' @importFrom SummarizedExperiment assay assay<-
+#' @importFrom matrixStats colMedians
+#' @importFrom stats mad median
+#'
 #' @export
 GN_normalization <- function(se) {
   data <- assay(se)
@@ -8,6 +37,31 @@ GN_normalization <- function(se) {
   return(se)
 }
 
+#' Median centering normalization
+#'
+#' Performs median centering normalization on proteomics data by subtracting
+#' the column median from each value.
+#'
+#' @param se A \code{SummarizedExperiment} object containing log2-transformed
+#'   proteomics data.
+#'
+#' @return A \code{SummarizedExperiment} object with median-centered assay values.
+#'
+#' @details
+#' This is a simple normalization that centers each sample around zero by
+#' subtracting the sample median. It assumes that the majority of proteins
+#' are not changing between samples.
+#'
+#' @examples
+#' \dontrun{
+#' se_normalized <- MD_normalization(se)
+#' }
+#'
+#' @seealso \code{\link{GN_normalization}}, \code{\link{VSN_normalization}}
+#'
+#' @importFrom SummarizedExperiment assay assay<-
+#' @importFrom matrixStats colMedians
+#'
 #' @export
 MD_normalization <- function(se) {
   data <- assay(se)
@@ -15,6 +69,33 @@ MD_normalization <- function(se) {
   return(se)
 }
 
+#' Variance stabilizing normalization (VSN)
+#'
+#' Performs variance stabilizing normalization on proteomics data using the
+#' vsn package. This method is particularly useful for LFQ and DIA data.
+#'
+#' @param se A \code{SummarizedExperiment} object containing log2-transformed
+#'   proteomics data. Must have \code{exp} set to "LFQ" or "DIA" in metadata.
+#'
+#' @return A \code{SummarizedExperiment} object with VSN-normalized assay values.
+#'
+#' @details
+#' VSN transforms the data to stabilize the variance across the intensity range.
+#' The function first converts log2 intensities back to linear scale, applies
+#' VSN, and stores the transformed values. This normalization is only applied
+#' to LFQ and DIA data types.
+#'
+#' @examples
+#' \dontrun
+#' se_normalized <- VSN_normalization(se)
+#' }
+#'
+#' @seealso \code{\link{GN_normalization}}, \code{\link{MD_normalization}}
+#'
+#' @importFrom SummarizedExperiment assay assay<- metadata
+#' @importFrom vsn vsnMatrix predict
+#' @importFrom assertthat assert_that
+#'
 #' @export
 VSN_normalization <- function(se) {
   assertthat::assert_that(inherits(se, "SummarizedExperiment"))
@@ -26,6 +107,48 @@ VSN_normalization <- function(se) {
   return(se)
 }
 
+#' PTM normalization using protein-level data
+#'
+#' Normalizes post-translational modification (PTM) site data by regressing
+#' out the protein-level abundance changes, isolating the PTM-specific signal.
+#'
+#' @param ptm_se A \code{SummarizedExperiment} object containing PTM-level data
+#'   (e.g., phosphosite quantification). Must have "Index" and "ProteinID"
+#'   columns in rowData.
+#' @param se A \code{SummarizedExperiment} object containing protein-level data.
+#'   Must have "Index" and "ProteinID" columns in rowData.
+#' @param print_progress Logical indicating whether to print progress messages
+#'   during normalization. Default is \code{FALSE}.
+#'
+#' @return A \code{SummarizedExperiment} object containing the protein-normalized
+#'   PTM data. The assay values represent the residuals from regressing PTM
+#'   intensities on protein intensities.
+#'
+#' @details
+#' This normalization is useful for phosphoproteomics and other PTM studies
+#' where you want to identify PTM changes that are independent of protein
+#' abundance changes. The method:
+#' \enumerate{
+#'   \item Matches PTM sites to their parent proteins
+#'   \item Fits a linear model: PTM ~ Protein
+#'   \item Returns the residuals as the normalized PTM values
+#' }
+#'
+#' The correlation between normalized PTM values and protein values should be
+#' near zero, indicating successful removal of protein-level effects.
+#'
+#' @examples
+#' \dontrun{
+#' # Normalize phosphosite data using protein data
+#' phospho_normalized <- PTM_normalization(phospho_se, protein_se)
+#' }
+#'
+#' @seealso \code{\link{GN_normalization}}, \code{\link{MD_normalization}}
+#'
+#' @importFrom SummarizedExperiment assay assay<- rowData colData
+#' @importFrom dplyr filter left_join mutate select
+#' @importFrom stats lm cor
+#'
 #' @export
 PTM_normalization <- function(ptm_se, se, print_progress=F) {
   pprot <- gsub("_.*", "", rowData(ptm_se)$Index)

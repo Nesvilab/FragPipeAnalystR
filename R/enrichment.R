@@ -1,3 +1,62 @@
+#' Gene Set Enrichment Analysis (GSEA)
+#'
+#' Performs Gene Set Enrichment Analysis on ranked protein-level data using
+#' the clusterProfiler package.
+#'
+#' @param se A \code{SummarizedExperiment} object containing protein-level data.
+#'   Peptide-level data is not supported.
+#' @param col Character string specifying the column name in rowData to use
+#'   for ranking (e.g., log2 fold change column like "Treatment_vs_Control_diff").
+#' @param database Character string specifying the database for enrichment analysis.
+#'   Options are:
+#'   \itemize{
+#'     \item \code{"GO Biological Process"}: Gene Ontology Biological Process (default)
+#'     \item \code{"GO Cellular Component"}: Gene Ontology Cellular Component
+#'     \item \code{"GO Molecular Function"}: Gene Ontology Molecular Function
+#'     \item \code{"Hallmark"}: MSigDB Hallmark gene sets (requires msigdbr package)
+#'     \item \code{"KEGG"}: KEGG pathways
+#'   }
+#' @param file Character string specifying the path to a custom GMT file.
+#'   If provided, this overrides the \code{database} parameter.
+#' @param minGSSize Numeric value for the minimum gene set size to include.
+#'   Default is 0.
+#' @param eps Numeric value for the boundary for calculating p-values.
+#'   Default is 0. See \code{fgsea} documentation.
+#' @param convert Logical indicating whether to convert the result to a data frame
+#'   and add a Count column. Default is \code{TRUE}.
+#'
+#' @return If \code{convert = TRUE}, returns a data frame with GSEA results including:
+#'   \itemize{
+#'     \item \code{ID}: Gene set identifier
+#'     \item \code{Description}: Gene set description
+#'     \item \code{NES}: Normalized Enrichment Score
+#'     \item \code{pvalue}: P-value
+#'     \item \code{p.adjust}: Adjusted p-value (BH method)
+#'     \item \code{core_enrichment}: Leading edge genes
+#'     \item \code{Count}: Number of genes in core enrichment
+#'   }
+#'   If \code{convert = FALSE}, returns a clusterProfiler gseaResult object.
+#'
+#' @examples
+#' \dontrun{
+#' # GSEA using GO Biological Process
+#' gsea_result <- GSEA_test(se_diff, col = "Treatment_vs_Control_diff",
+#'                          database = "GO Biological Process")
+#'
+#' # GSEA using KEGG pathways
+#' gsea_result <- GSEA_test(se_diff, col = "Treatment_vs_Control_diff",
+#'                          database = "KEGG")
+#'
+#' # GSEA using custom GMT file
+#' gsea_result <- GSEA_test(se_diff, col = "Treatment_vs_Control_diff",
+#'                          file = "my_genesets.gmt")
+#' }
+#'
+#' @seealso \code{\link{plot_GSEA}}, \code{\link{or_test}}
+#'
+#' @importFrom clusterProfiler GSEA gseGO gseKEGG bitr read.gmt setReadable
+#' @importFrom stringr str_count
+#'
 #' @export
 GSEA_test <- function(se, col=NULL, database="GO Biological Process", file=NULL, minGSSize=0, eps=0, convert=T) {
   if (metadata(se)$level %in% c("peptide")) {
@@ -64,6 +123,39 @@ GSEA_test <- function(se, col=NULL, database="GO Biological Process", file=NULL,
   return(result)
 }
 
+#' Plot GSEA results
+#'
+#' Creates a dot plot visualization of Gene Set Enrichment Analysis results,
+#' showing the most positively and negatively enriched gene sets.
+#'
+#' @param gsea_result A data frame containing GSEA results from \code{\link{GSEA_test}}.
+#'   Must contain columns: ID, NES, p.adjust, core_enrichment.
+#' @param categroies Numeric value specifying the number of top and bottom
+#'   enriched gene sets to display. Default is 15 (showing 30 total: 15 positive
+#'   and 15 negative NES).
+#'
+#' @return A \code{ggplot} object showing a dot plot where:
+#'   \itemize{
+#'     \item X-axis: Normalized Enrichment Score (NES)
+#'     \item Y-axis: Gene set names
+#'     \item Point size: Number of core enrichment genes
+#'     \item Point color: Adjusted p-value (red = low, blue = high)
+#'   }
+#'
+#' @examples
+#' \dontrun{
+#' # Perform GSEA
+#' gsea_result <- GSEA_test(se_diff, col = "Treatment_vs_Control_diff")
+#'
+#' # Plot top 10 positive and negative enrichments
+#' plot_GSEA(gsea_result, categroies = 10)
+#' }
+#'
+#' @seealso \code{\link{GSEA_test}}
+#'
+#' @importFrom ggplot2 ggplot aes geom_point scale_color_continuous theme_bw
+#' @importFrom stringr str_count
+#'
 #' @export
 plot_GSEA <- function(gsea_result, categroies=15) {
   if (!"Count" %in% colnames(gsea_result)) {
@@ -82,6 +174,67 @@ plot_GSEA <- function(gsea_result, categroies=15) {
   return(plot)
 }
 
+#' Over-representation analysis (ORA)
+#'
+#' Performs over-representation analysis on significantly differential proteins
+#' using either Enrichr or clusterProfiler as the backend.
+#'
+#' @param se A \code{SummarizedExperiment} object containing differential expression
+#'   results from \code{\link{test_limma}} or \code{\link{test_diff}}.
+#' @param database Character string specifying the database for enrichment analysis.
+#'   Options are:
+#'   \itemize{
+#'     \item \code{"GO Biological Process"}: Gene Ontology Biological Process (default)
+#'     \item \code{"GO Cellular Component"}: Gene Ontology Cellular Component
+#'     \item \code{"GO Molecular Function"}: Gene Ontology Molecular Function
+#'     \item \code{"Hallmark"}: MSigDB Hallmark gene sets
+#'     \item \code{"KEGG"}: KEGG pathways
+#'     \item \code{"Reactome"}: Reactome pathways (Enrichr backend only)
+#'   }
+#' @param backend Character string specifying the analysis backend.
+#'   Options are:
+#'   \itemize{
+#'     \item \code{"enrichr"}: Use Enrichr web service (default)
+#'     \item \code{"clusterProfiler"}: Use clusterProfiler R package
+#'   }
+#' @param direction Character string specifying which proteins to analyze.
+#'   Options are:
+#'   \itemize{
+#'     \item \code{"UP"}: Up-regulated proteins (positive log2 fold change)
+#'     \item \code{"DOWN"}: Down-regulated proteins (negative log2 fold change)
+#'   }
+#' @param log2_threshold Numeric value for the log2 fold change cutoff.
+#'   Default is 0.7 (approximately 1.6-fold change).
+#' @param alpha Numeric value for the significance threshold on adjusted p-values.
+#'   Default is 0.05.
+#'
+#' @return A data frame with enrichment results including:
+#'   \itemize{
+#'     \item \code{Term}: Enriched term name
+#'     \item \code{Overlap}: Number of genes overlapping with the term
+#'     \item \code{P.value}: Raw p-value
+#'     \item \code{Adjusted.P.value}: Adjusted p-value
+#'     \item \code{Odds.Ratio}: Odds ratio for enrichment
+#'     \item \code{log_odds}: Log2 odds ratio (background corrected)
+#'     \item \code{contrast}: The contrast tested
+#'     \item \code{var}: Database used
+#'     \item \code{p_hyper}: Hypergeometric test p-value (background corrected)
+#'     \item \code{p.adjust_hyper}: Adjusted hypergeometric p-value
+#'   }
+#'
+#' @examples
+#' \dontrun
+#' # ORA for up-regulated proteins using Enrichr
+#' or_result <- or_test(se_diff, database = "GO Biological Process",
+#'                      direction = "UP", alpha = 0.05)
+#'
+#' # ORA using clusterProfiler backend
+#' or_result <- or_test(se_diff, database = "KEGG",
+#'                      backend = "clusterProfiler")
+#' }
+#'
+#' @seealso \code{\link{plot_or}}, \code{\link{GSEA_test}}
+#'
 #' @export
 or_test <- function(se, database="GO Biological Process", backend="enrichr", direction="UP", log2_threshold=0.7, alpha=0.05) {
   if (backend == "enrichr") {
@@ -224,6 +377,58 @@ or_test <- function(se, database="GO Biological Process", backend="enrichr", dir
   }
 }
 
+#' Plot over-representation analysis results
+#'
+#' Creates a dot plot visualization of over-representation analysis results,
+#' showing enriched terms ranked by log2 odds ratio.
+#'
+#' @param or_result A data frame containing ORA results from \code{\link{or_test}}.
+#'   Must contain columns: Term, var, contrast, Adjusted.P.value.
+#' @param number Numeric value specifying the maximum number of top enriched
+#'   terms to display per contrast. Default is 10.
+#' @param alpha Numeric value for the significance threshold. Only terms with
+#'   p-value below this threshold are shown. Default is 0.05.
+#' @param contrasts Character vector specifying which contrasts to plot.
+#'   Default is \code{NULL} (plot all contrasts).
+#' @param databases Character vector specifying which databases to plot.
+#'   Default is \code{NULL} (plot all databases).
+#' @param adjust Logical indicating whether to use adjusted p-values (\code{TRUE})
+#'   or raw p-values (\code{FALSE}). Default is \code{FALSE}.
+#' @param use_whole_proteome Logical indicating whether to use whole proteome
+#'   statistics instead of background-corrected statistics. Default is \code{FALSE}.
+#' @param nrow Numeric value specifying the number of rows for faceting when
+#'   multiple contrasts are plotted. Default is 1.
+#' @param term_size Numeric value for term text size (currently unused).
+#'   Default is 8.
+#'
+#' @return A \code{ggplot} object showing a dot plot where:
+#'   \itemize{
+#'     \item X-axis: Log2 odds ratio
+#'     \item Y-axis: Enriched terms
+#'     \item Point size: Number of genes in overlap
+#'     \item Point color: P-value (red = low/significant, blue = high)
+#'   }
+#'   If no enrichment is found, returns a plot with "No enrichment found" message.
+#'
+#' @examples
+#' \dontrun{
+#' # Perform ORA
+#' or_result <- or_test(se_diff, database = "GO Biological Process")
+#'
+#' # Plot top 15 enriched terms
+#' plot_or(or_result, number = 15)
+#'
+#' # Plot specific contrasts with adjusted p-values
+#' plot_or(or_result, contrasts = "Treatment_vs_Control", adjust = TRUE)
+#' }
+#'
+#' @seealso \code{\link{or_test}}
+#'
+#' @importFrom ggplot2 ggplot aes geom_point facet_wrap scale_color_continuous
+#'   labs theme_bw theme element_text annotate
+#' @importFrom dplyr filter group_by arrange slice
+#' @importFrom readr parse_factor
+#'
 #' @export
 plot_or <- function(or_result, number = 10, alpha = 0.05,
                     contrasts = NULL, databases = NULL,  adjust=F, use_whole_proteome=F,
@@ -637,6 +842,39 @@ enrichr_mod <- function(genes, databases = NULL) {
   return(result)
 }
 
+#' Prepare data for PTM-SEA analysis
+#'
+#' Exports phosphoproteomics data in GCT format for PTM Signature Enrichment
+#' Analysis (PTM-SEA) using ssGSEA.
+#'
+#' @param se A \code{SummarizedExperiment} object containing phosphoproteomics data.
+#'   Must have \code{exp_type = "phospho"} in metadata and a "SequenceWindow"
+#'   column in rowData.
+#' @param col Character string specifying the column name in rowData containing
+#'   the values to export (e.g., log2 fold change column).
+#' @param outfile Character string specifying the output file path for the GCT file.
+#'
+#' @return Writes a GCT format file to the specified path. Returns \code{NULL} invisibly.
+#'
+#' @details
+#' PTM-SEA is a method for identifying dysregulated PTM signatures based on
+#' phosphoproteomics data. The output GCT file can be used with the ssGSEA
+#' module in GenePattern or other compatible tools.
+#'
+#' The function creates peptide identifiers by converting sequence windows to
+#' uppercase and appending "-p" to indicate phosphorylation sites.
+#'
+#' @examples
+#' \dontrun{
+#' # Prepare data for PTM-SEA analysis
+#' prepare_PTMSEA(se_phospho, col = "Treatment_vs_Control_diff",
+#'                outfile = "ptmsea_input.gct")
+#' }
+#'
+#' @seealso \code{\link{visualize_PTMSEA}}
+#'
+#' @importFrom cmapR GCT
+#'
 #' @export
 prepare_PTMSEA <- function(se, col, outfile) {
   if (metadata(se)$exp_type == "phospho") {
@@ -727,6 +965,45 @@ write_gct <- function(ds, ofile, precision=4, appenddim=TRUE, ver=3) {
   cat("Saved.\n")
 }
 
+#' Visualize PTM-SEA results
+#'
+#' Creates a dot plot visualization of PTM Signature Enrichment Analysis results
+#' from a GCT output file.
+#'
+#' @param gct_file Character string specifying the path to the PTM-SEA output
+#'   GCT file (typically generated by ssGSEA).
+#' @param col Character string specifying the score column to visualize.
+#' @param selected_concepts Character vector of specific concept/signature IDs
+#'   to display. Default is \code{NULL} (show top enriched concepts).
+#' @param num_concepts Numeric value specifying the number of top and bottom
+#'   enriched concepts to display when \code{selected_concepts} is \code{NULL}.
+#'   Default is 5 (showing 10 total).
+#'
+#' @return A \code{ggplot} object showing a dot plot where:
+#'   \itemize{
+#'     \item X-axis: Enrichment score
+#'     \item Y-axis: PTM signature names
+#'     \item Point size: Signature set overlap percentage
+#'     \item Point color: FDR-adjusted p-value
+#'   }
+#'   Returns \code{NULL} if the specified column is not found.
+#'
+#' @examples
+#' \dontrun{
+#' # Visualize PTM-SEA results
+#' p <- visualize_PTMSEA("ptmsea_output.gct", col = "Treatment_vs_Control")
+#'
+#' # Show specific kinase signatures
+#' p <- visualize_PTMSEA("ptmsea_output.gct", col = "Treatment_vs_Control",
+#'                       selected_concepts = c("KINASE_A", "KINASE_B"))
+#' }
+#'
+#' @seealso \code{\link{prepare_PTMSEA}}
+#'
+#' @importFrom cmapR parse_gctx mat meta
+#' @importFrom ggplot2 ggplot aes_string geom_point scale_size_continuous
+#'   scale_color_continuous theme_bw
+#'
 #' @export
 visualize_PTMSEA <- function(gct_file, col, selected_concepts=NULL, num_concepts=5) {
   gct <- parse_gctx(gct_file)
@@ -752,6 +1029,51 @@ visualize_PTMSEA <- function(gct_file, col, selected_concepts=NULL, num_concepts
   return(p)
 }
 
+#' Prepare data for kinome enrichment analysis
+#'
+#' Exports phosphoproteomics data in a format compatible with the PhosphoSitePlus
+#' Kinase Library enrichment analysis tool.
+#'
+#' @param se A \code{SummarizedExperiment} object containing phosphoproteomics data.
+#'   Must have \code{exp_type = "phospho"} in metadata and a "SequenceWindow"
+#'   column in rowData.
+#' @param col Character string specifying the column name in rowData containing
+#'   log2 fold change values.
+#' @param outfile Character string specifying the output file path.
+#' @param format Character string specifying the phosphosite format in the output.
+#'   Options are:
+#'   \itemize{
+#'     \item \code{"asterisk"}: Mark phosphosites with asterisks (e.g., "s*", "t*", "y*")
+#'     \item \code{"central"}: Convert to uppercase without markers
+#'   }
+#' @param p_col Character string specifying the column name containing p-values.
+#'   Default is \code{NULL} (p-values not included in output).
+#'
+#' @return Writes a tab-separated file to the specified path containing:
+#'   \itemize{
+#'     \item Column 1: Site sequence
+#'     \item Column 2: Log2 fold change
+#'     \item Column 3: P-value (if \code{p_col} specified)
+#'   }
+#'
+#' @details
+#' The output file can be uploaded to the PhosphoSitePlus Kinase Library
+#' enrichment analysis tool at https://kinase-library.phosphosite.org/ea
+#'
+#' @examples
+#' \dontrun{
+#' # Prepare kinome input with asterisk format
+#' prepare_kinome(se_phospho, col = "Treatment_vs_Control_diff",
+#'                outfile = "kinome_input.tsv", format = "asterisk")
+#'
+#' # Include p-values
+#' prepare_kinome(se_phospho, col = "Treatment_vs_Control_diff",
+#'                p_col = "Treatment_vs_Control_p.val",
+#'                outfile = "kinome_input.tsv")
+#' }
+#'
+#' @seealso \code{\link{visualize_kinome}}
+#'
 #' @export
 prepare_kinome <- function(se, col, outfile, format="asterisk", p_col=NULL) {
   # Generate input for kinome analysis: https://kinase-library.phosphosite.org/ea
@@ -785,6 +1107,49 @@ prepare_kinome <- function(se, col, outfile, format="asterisk", p_col=NULL) {
   }
 }
 
+#' Visualize kinome enrichment analysis results
+#'
+#' Creates a volcano-style plot of kinase enrichment results from the
+#' PhosphoSitePlus Kinase Library analysis.
+#'
+#' @param tsv_file Character string specifying the path to the kinase enrichment
+#'   results file (downloaded from PhosphoSitePlus Kinase Library).
+#' @param labels Character vector of kinase names to highlight in red.
+#'   Default is \code{NULL} (highlight based on thresholds).
+#' @param log2fc Numeric value for the log2 enrichment score threshold for
+#'   labeling kinases. Default is 1.
+#' @param pval Numeric value for the adjusted p-value threshold for labeling
+#'   kinases. Default is 0.05.
+#' @param legacy Logical indicating whether to use legacy file format parsing.
+#'   Default is \code{FALSE}.
+#'
+#' @return A \code{ggplot} object showing a scatter plot where:
+#'   \itemize{
+#'     \item X-axis: Log2 enrichment score
+#'     \item Y-axis: -log10 adjusted p-value
+#'     \item Labels: Kinase names (either based on thresholds or specified labels)
+#'   }
+#'
+#' @examples
+#' \dontrun{
+#' # Visualize kinome results with default thresholds
+#' p <- visualize_kinome("kinase_enrichment_results.tsv")
+#'
+#' # Highlight specific kinases
+#' p <- visualize_kinome("kinase_enrichment_results.tsv",
+#'                       labels = c("AKT1", "MAPK1", "CDK1"))
+#'
+#' # Use stricter thresholds
+#' p <- visualize_kinome("kinase_enrichment_results.tsv",
+#'                       log2fc = 2, pval = 0.01)
+#' }
+#'
+#' @seealso \code{\link{prepare_kinome}}
+#'
+#' @importFrom ggplot2 ggplot aes geom_point geom_text_repel theme_bw theme
+#'   element_blank element_line labs
+#' @importFrom data.table fread
+#'
 #' @export
 visualize_kinome <- function(tsv_file, labels=NULL, log2fc=1, pval=0.05, legacy=F) {
   if (legacy) {

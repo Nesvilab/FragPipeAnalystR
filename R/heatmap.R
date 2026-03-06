@@ -1,4 +1,32 @@
 #' Plot missing value heatmap
+#'
+#' Creates a binary heatmap visualization showing the pattern of missing values
+#' across samples and proteins.
+#'
+#' @param se A \code{SummarizedExperiment} object containing proteomics data
+#'   with missing values.
+#'
+#' @return A ComplexHeatmap object showing the missing value pattern where
+#'   white cells represent missing values and black cells represent valid values.
+#'   Only proteins with at least one missing value are displayed.
+#'
+#' @details
+#' This visualization helps identify whether missing values are randomly
+#' distributed or show systematic patterns (e.g., all missing in certain
+#' samples or conditions), which can inform imputation strategy selection.
+#'
+#' @examples
+#' \dontrun{
+#' # Plot missing value pattern
+#' plot_missval_heatmap(se)
+#' }
+#'
+#' @seealso \code{\link{plotCumulativeMissingPercent}}, \code{\link{impute}}
+#'
+#' @importFrom ComplexHeatmap Heatmap draw
+#' @importFrom SummarizedExperiment assay
+#' @importFrom grid gpar
+#'
 #' @export
 plot_missval_heatmap <- function(se) {
   # Show error if input is not the required classes
@@ -34,7 +62,65 @@ plot_missval_heatmap <- function(se) {
   return(draw(ht2, heatmap_legend_side = "top"))
 }
 
-#' Plot correlation heatmap
+#' Plot sample correlation heatmap
+#'
+#' Creates a heatmap visualization of Pearson correlation coefficients between
+#' all sample pairs, useful for quality control and identifying outliers.
+#'
+#' @param dep A \code{SummarizedExperiment} object containing proteomics data.
+#' @param significant Logical indicating whether to use only significant proteins
+#'   for correlation calculation. Requires a "significant" column from
+#'   \code{\link{add_rejections}}. Default is \code{FALSE}.
+#' @param lower Numeric value (-1 to 1) for the lower bound of the color scale.
+#'   Default is -1.
+#' @param upper Numeric value (-1 to 1) for the upper bound of the color scale.
+#'   Default is 1.
+#' @param pal Character string specifying the RColorBrewer palette name.
+#'   Must be a sequential or diverging palette (not qualitative).
+#'   Default is "PRGn".
+#' @param pal_rev Logical indicating whether to reverse the color palette.
+#'   Default is \code{FALSE}.
+#' @param indicate Character vector specifying colData columns to use for
+#'   heatmap annotation. Default is \code{NULL}.
+#' @param font_size Numeric value for sample name font size. Default is 10.
+#' @param exp Character string for experiment type. If \code{NULL}, uses
+#'   metadata value. Default is \code{NULL}.
+#' @param use Character string specifying how to handle missing values in
+#'   correlation calculation. Passed to \code{cor()}. Default is "complete.obs".
+#' @param ... Additional arguments passed to \code{ComplexHeatmap::Heatmap()}.
+#'
+#' @return A ComplexHeatmap object showing the sample correlation matrix
+#'   with hierarchical clustering.
+#'
+#' @details
+#' High correlations between biological replicates and distinct clustering
+#' of different conditions indicate good data quality. Samples that don't
+#' cluster with their replicates may be outliers.
+#'
+#' @examples
+#' \dontrun{
+#' # Basic correlation heatmap
+#' plot_correlation_heatmap(se)
+#'
+#' # With condition annotation
+#' plot_correlation_heatmap(se, indicate = "condition")
+#'
+#' # Using only significant proteins
+#' plot_correlation_heatmap(se_diff, significant = TRUE)
+#' }
+#'
+#' @seealso \code{\link{plot_pca}}, \code{\link{get_cluster_heatmap}}
+#'
+#' @importFrom ComplexHeatmap Heatmap HeatmapAnnotation
+#' @importFrom SummarizedExperiment assay colData rowData metadata
+#' @importFrom RColorBrewer brewer.pal brewer.pal.info
+#' @importFrom circlize colorRamp2
+#' @importFrom grid gpar
+#' @importFrom dplyr select all_of
+#' @importFrom tibble rownames_to_column
+#' @importFrom tidyr replace_na
+#' @importFrom stats cor
+#'
 #' @export
 plot_correlation_heatmap <- function(dep, significant = FALSE, lower = -1, upper = 1,
                                      pal = "PRGn", pal_rev = FALSE, indicate = NULL,
@@ -188,7 +274,87 @@ plot_correlation_heatmap <- function(dep, significant = FALSE, lower = -1, upper
 }
 
 
-#' Plot heatmap using differentially expressed features
+#' Clustered heatmap of differentially expressed proteins
+#'
+#' Creates a heatmap visualization of differentially expressed proteins with
+#' hierarchical or k-means clustering, showing either fold changes or
+#' centered intensities.
+#'
+#' @param dep A \code{SummarizedExperiment} object containing differential
+#'   expression results from \code{\link{test_limma}} or \code{\link{test_diff}}
+#'   with significance annotations from \code{\link{add_rejections}}.
+#' @param type Character string specifying the data to visualize:
+#'   \itemize{
+#'     \item \code{"contrast"}: Log2 fold changes for each contrast
+#'     \item \code{"centered"}: Mean-centered log2 intensities per sample
+#'   }
+#' @param kmeans Logical indicating whether to perform k-means clustering
+#'   on proteins. Default is \code{FALSE} (hierarchical clustering).
+#' @param k Numeric value for the number of k-means clusters when
+#'   \code{kmeans = TRUE}. Default is 6.
+#' @param col_limit Numeric value for the color scale limits (-col_limit to
+#'   +col_limit). Default is 6.
+#' @param indicate Character vector specifying colData columns for heatmap
+#'   annotation. Only applicable when \code{type = "centered"}.
+#'   Default is \code{NULL}.
+#' @param alpha Numeric value for the significance threshold on adjusted
+#'   p-values. Default is 0.01.
+#' @param lfc Numeric value for the log2 fold change threshold. Default is 1.
+#' @param clustering_distance Character string for the distance metric used
+#'   in hierarchical clustering. Options include "euclidean", "pearson",
+#'   "spearman", "gower" (for data with missing values), etc.
+#' @param row_font_size Numeric value for protein name font size. Default is 6.
+#' @param col_font_size Numeric value for sample/contrast name font size.
+#'   Default is 10.
+#' @param plot Logical indicating whether to draw the heatmap. Default is \code{TRUE}.
+#' @param ... Additional arguments passed to \code{ComplexHeatmap::Heatmap()}.
+#'
+#' @return A list containing:
+#'   \itemize{
+#'     \item The ComplexHeatmap object
+#'     \item Row cluster order information
+#'   }
+#'   If no differentially expressed proteins are found, returns a ggplot
+#'   object with a message.
+#'
+#' @details
+#' Only proteins meeting both the \code{alpha} (adjusted p-value) and \code{lfc}
+#' (log2 fold change) thresholds are included in the heatmap. When data contains
+#' missing values, Gower distance is automatically used for clustering.
+#'
+#' K-means clusters are ordered by their average fold change magnitude to
+#' facilitate interpretation.
+#'
+#' @examples
+#' \dontrun{
+#' # Basic cluster heatmap with fold changes
+#' get_cluster_heatmap(se_diff, type = "contrast")
+#'
+#' # Centered intensities with k-means clustering
+#' get_cluster_heatmap(se_diff, type = "centered", kmeans = TRUE, k = 4)
+#'
+#' # With condition annotation
+#' get_cluster_heatmap(se_diff, type = "centered", indicate = "condition")
+#'
+#' # Stricter thresholds
+#' get_cluster_heatmap(se_diff, alpha = 0.001, lfc = 2)
+#' }
+#'
+#' @seealso \code{\link{plot_correlation_heatmap}}, \code{\link{test_limma}},
+#'   \code{\link{add_rejections}}
+#'
+#' @importFrom ComplexHeatmap Heatmap draw row_order
+#' @importFrom SummarizedExperiment assay colData rowData
+#' @importFrom circlize colorRamp2
+#' @importFrom RColorBrewer brewer.pal
+#' @importFrom dplyr select mutate group_by summarize arrange pull ends_with
+#' @importFrom tidyr gather
+#' @importFrom tibble column_to_rownames
+#' @importFrom ggplot2 ggplot annotate theme_void
+#' @importFrom grid gpar
+#' @importFrom stats kmeans
+#' @importFrom cluster daisy
+#'
 #' @export
 get_cluster_heatmap <- function(dep, type = c("contrast", "centered"),
                                 kmeans = FALSE, k = 6,
@@ -466,10 +632,49 @@ get_annotation <- function(dep, indicate) {
                                     show_annotation_name = TRUE)
 }
 
-#' Plot the half heatmap to show the correlation between replicate samples
+#' Plot replicate correlation half-heatmap
 #'
-#' @param se expression dataframe
-#' @param rep_samples samples to be included. Usually the replicate samples
+#' Creates a triangular heatmap visualization showing Pearson correlation
+#' coefficients between specified replicate samples, with correlation values
+#' displayed in each cell.
+#'
+#' @param se A \code{SummarizedExperiment} object containing proteomics data.
+#' @param rep_samples Character vector of sample names (column names from assay)
+#'   to include in the correlation matrix. Typically technical or biological
+#'   replicates that should show high correlation.
+#'
+#' @return A ggplot object (converted from ComplexHeatmap) showing a triangular
+#'   correlation matrix with:
+#'   \itemize{
+#'     \item Color scale from blue (-1) through white (0) to red (+1)
+#'     \item Correlation coefficients displayed in lower triangle
+#'     \item No clustering (samples in specified order)
+#'   }
+#'
+#' @details
+#' This visualization is particularly useful for quality control of technical
+#' replicates, where correlations should typically be > 0.95. The triangular
+#' format reduces visual redundancy compared to full correlation matrices.
+#'
+#' @examples
+#' \dontrun{
+#' # Plot correlation between specific replicates
+#' plot_replicate_heatmap(se, rep_samples = c("Sample1_Rep1", "Sample1_Rep2",
+#'                                            "Sample1_Rep3"))
+#'
+#' # All samples from one condition
+#' condition_samples <- colData(se)$sample_name[colData(se)$condition == "Control"]
+#' plot_replicate_heatmap(se, rep_samples = condition_samples)
+#' }
+#'
+#' @seealso \code{\link{plot_correlation_heatmap}}
+#'
+#' @importFrom ComplexHeatmap Heatmap
+#' @importFrom SummarizedExperiment assay
+#' @importFrom circlize colorRamp2
+#' @importFrom grid gpar grid.rect grid.text
+#' @importFrom ggplotify as.ggplot
+#' @importFrom stats cor
 #'
 #' @export
 plot_replicate_heatmap <- function(se,

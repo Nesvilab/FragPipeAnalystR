@@ -1,23 +1,76 @@
-#' @param se input SummarizedExperiment object
-#' @param additional_matrix additional matrix like RNA expression
-#' @param max_cluster_num
-#' @param name
-#' @param workdir
-#' @param clusterAlg
-#' @param distance
-#' @param reps
-#' @param pItem
-#' @param pFeature
-#' @param plot description
-#' @param innerLinkage
-#' @param finalLinkage
-#' @param writeTable
-#' @param weightsItem
-#' @param weightsFeature
-#' @param verbose
-#' @param corUse
-#' @param seed
-#' @return SummarizedExperiment object with consensus clustering analysis result added into metadata
+#' Consensus clustering analysis
+#'
+#' Performs unsupervised consensus clustering to identify sample subtypes
+#' using the ConsensusClusterPlus algorithm.
+#'
+#' @param se A \code{SummarizedExperiment} object containing proteomics data.
+#' @param additional_matrix Optional additional data matrix (e.g., RNA expression)
+#'   to integrate with proteomics data. Can be a single matrix/data.frame or
+#'   a list of matrices. Default is \code{NULL}.
+#' @param max_cluster_num Numeric value for the maximum number of clusters to
+#'   evaluate. Default is 10.
+#' @param name Character string specifying the name for storing results in
+#'   metadata. Default is "ConsensusClustering".
+#' @param workdir Character string specifying the output directory for
+#'   consensus clustering plots. Default is "ConsensusClusteringResult".
+#' @param clusterAlg Character string specifying the clustering algorithm.
+#'   Options include "pam" (default), "hc", "km", or others supported by
+#'   ConsensusClusterPlus.
+#' @param distance Character string specifying the distance metric.
+#'   Options include "pearson" (default), "spearman", "euclidean", etc.
+#' @param reps Numeric value for the number of resampling iterations.
+#'   Default is 500.
+#' @param pItem Numeric value between 0 and 1 for the proportion of items
+#'   (samples) to sample in each iteration. Default is 0.8.
+#' @param pFeature Numeric value between 0 and 1 for the proportion of
+#'   features to sample in each iteration. Default is 1.
+#' @param plot Character string specifying output format for plots.
+#'   Options are "png" (default), "pdf", "ps", or NULL for no plots.
+#' @param innerLinkage Character string for linkage method in inner clustering.
+#'   Default is "average".
+#' @param finalLinkage Character string for linkage method in final clustering.
+#'   Default is "average".
+#' @param writeTable Logical indicating whether to write consensus matrices
+#'   to files. Default is \code{FALSE}.
+#' @param weightsItem Optional numeric vector of weights for items.
+#' @param weightsFeature Optional numeric vector of weights for features.
+#' @param verbose Logical for verbose output. Default is \code{FALSE}.
+#' @param corUse Character string for handling missing values in correlation.
+#'   Default is "everything".
+#' @param seed Numeric value for random seed. Default is \code{NULL} (uses 0).
+#'
+#' @return A \code{SummarizedExperiment} object with consensus clustering
+#'   results stored in \code{metadata(se)[[name]]}.
+#'
+#' @details
+#' Consensus clustering is a resampling-based method that provides robust
+#' cluster assignments and helps determine the optimal number of clusters.
+#' The function generates consensus matrices and diagnostic plots to evaluate
+#' cluster stability.
+#'
+#' When \code{additional_matrix} is provided, the data are combined (rbind)
+#' for integrated multi-omics clustering.
+#'
+#' @examples
+#' \dontrun{
+#' # Basic consensus clustering
+#' se <- consensus_clustering_analysis(se, max_cluster_num = 6)
+#'
+#' # With custom parameters
+#' se <- consensus_clustering_analysis(se, max_cluster_num = 8,
+#'                                     clusterAlg = "hc",
+#'                                     distance = "spearman",
+#'                                     reps = 1000)
+#'
+#' # Multi-omics clustering
+#' se <- consensus_clustering_analysis(se, additional_matrix = rna_matrix)
+#' }
+#'
+#' @seealso \code{\link{snf_analysis}}
+#'
+#' @importFrom ConsensusClusterPlus ConsensusClusterPlus
+#' @importFrom SummarizedExperiment assay metadata metadata<-
+#'
 #' @export
 consensus_clustering_analysis <- function(se,
                                           additional_matrix=NULL, max_cluster_num=10, name="ConsensusClustering",
@@ -72,17 +125,77 @@ consensus_clustering_analysis <- function(se,
 }
 
 
-#' @param se input SummarizedExperiment object
-#' @param additional_matrix additional matrix like RNA expression
-#' @param max_cluster_num
-#' @param K
-#' @param alpha
-#' @param dist_metric
-#' @param cluster_method
-#' @param display_cluster
-#' @param workdir
+#' Similarity Network Fusion (SNF) analysis
 #'
-#' @return SummarizedExperiment object with SNF analysis result added into metadata
+#' Performs multi-omics integration and clustering using Similarity Network
+#' Fusion, which constructs sample similarity networks from each data type
+#' and fuses them into a single unified network.
+#'
+#' @param se A \code{SummarizedExperiment} object containing proteomics data.
+#' @param additional_matrix Additional data matrix (e.g., RNA expression) for
+#'   multi-omics integration. Can be a single matrix/data.frame or a list of
+#'   matrices. Default is \code{NULL}.
+#' @param max_cluster_num Numeric value for the maximum number of clusters to
+#'   evaluate. Default is 10.
+#' @param name Character string specifying the name for storing results in
+#'   metadata. Default is "SNFClustering".
+#' @param workdir Character string specifying the output directory for
+#'   SNF results and plots. Default is "SNF".
+#' @param K Numeric value for the number of nearest neighbors to consider
+#'   when constructing similarity graphs. Usually 10-30. Default is 20.
+#' @param alpha Numeric value (0-1) controlling the kernel scaling parameter.
+#'   Usually 0.3-0.8. Default is 0.5.
+#' @param T Numeric value for the number of iterations in the diffusion process.
+#'   Usually 10-20. Default is 10.
+#' @param dist_metric Character string specifying the distance metric.
+#'   Options are "euclidean" (default) or "pearson".
+#' @param writeTable Logical indicating whether to write fusion graph and
+#'   cluster results to files. Default is \code{FALSE}.
+#' @param display_cluster Logical indicating whether to generate heatmap
+#'   visualizations of the fused similarity matrix for each cluster number.
+#'   Default is \code{TRUE}.
+#'
+#' @return A \code{SummarizedExperiment} object with SNF results stored in
+#'   \code{metadata(se)[[name]]}, containing:
+#'   \itemize{
+#'     \item \code{dat_norm}: Normalized input data
+#'     \item \code{dat_dist}: Distance matrices
+#'     \item \code{dat_graph}: Affinity matrices for each data type
+#'     \item \code{W}: Fused similarity network
+#'     \item \code{result}: List of spectral clustering results for each k
+#'   }
+#'
+#' @details
+#' SNF is particularly useful for integrating multiple data types (e.g.,
+#' proteomics and transcriptomics) where each data type contributes complementary
+#' information about sample relationships. The method:
+#' \enumerate{
+#'   \item Normalizes each data type separately
+#'   \item Constructs similarity networks for each data type
+#'   \item Iteratively fuses networks using a diffusion process
+#'   \item Performs spectral clustering on the fused network
+#' }
+#'
+#' @examples
+#' \dontrun{
+#' # Single-omics SNF clustering
+#' se <- snf_analysis(se, max_cluster_num = 5)
+#'
+#' # Multi-omics integration
+#' se <- snf_analysis(se, additional_matrix = rna_matrix,
+#'                    K = 15, alpha = 0.6)
+#'
+#' # Access clustering results for k=3
+#' clusters_k3 <- metadata(se)$SNFClustering$result[[3]]$cluster
+#' }
+#'
+#' @seealso \code{\link{consensus_clustering_analysis}}
+#'
+#' @importFrom SNFtool standardNormalization dist2 affinityMatrix SNF spectralClustering
+#' @importFrom SummarizedExperiment assay colData metadata metadata<-
+#' @importFrom ComplexHeatmap Heatmap draw
+#' @importFrom grDevices png dev.off
+#'
 #' @export
 snf_analysis = function(se,
                         additional_matrix=NULL,
