@@ -1,3 +1,76 @@
+#' Principal Component Analysis (PCA) plot
+#'
+#' Creates a PCA visualization of proteomics data, with options for static
+#' (ggplot2) or interactive (plotly) output.
+#'
+#' @param dep A \code{SummarizedExperiment} object containing proteomics data.
+#' @param x Numeric value specifying which PC to plot on x-axis. Default is 1.
+#' @param y Numeric value specifying which PC to plot on y-axis. Default is 2.
+#' @param indicate Character vector specifying colData columns to use for
+#'   coloring/shaping points. Maximum of 3 features allowed.
+#'   Default is \code{c("condition", "replicate")}.
+#' @param label Logical indicating whether to add sample labels to points.
+#'   Default is \code{FALSE}.
+#' @param n Numeric value specifying the number of top variable features to use
+#'   for PCA calculation. Set to 0 to use all features. Default is 500.
+#' @param point_size Numeric value specifying the size of points. Default is 8.
+#' @param label_size Numeric value specifying the size of labels when
+#'   \code{label = TRUE}. Default is 3.
+#' @param plot Logical indicating whether to return a plot (\code{TRUE}) or
+#'   a data frame of PCA coordinates (\code{FALSE}). Default is \code{TRUE}.
+#' @param ID_col Character string specifying the column in colData to use for
+#'   sample identification. Default is "sample_name".
+#' @param exp Character string specifying the experiment type. If \code{NULL},
+#'   uses the value from metadata. Default is \code{NULL}.
+#' @param scale Logical indicating whether to scale features before PCA.
+#'   Default is \code{FALSE}.
+#' @param interactive Logical indicating whether to create an interactive
+#'   plotly visualization (\code{TRUE}) or static ggplot2 plot (\code{FALSE}).
+#'   Default is \code{FALSE}.
+#'
+#' @return If \code{plot = TRUE}, returns either a \code{ggplot} object (when
+#'   \code{interactive = FALSE}) or a \code{plotly} object (when
+#'   \code{interactive = TRUE}).
+#'   If \code{plot = FALSE}, returns a data frame with PCA coordinates and
+#'   indicated features.
+#'
+#' @details
+#' The function calculates PCA using the top n most variable features.
+#' For static plots:
+#' \itemize{
+#'   \item 1 indicate feature: mapped to color
+#'   \item 2 indicate features: mapped to color and shape
+#'   \item 3 indicate features: mapped to color, shape, and facets
+#' }
+#'
+#' For interactive TMT plots with 2 indicate features, a dropdown menu allows
+#' switching between condition-colored and plex-colored views.
+#'
+#' @examples
+#' \dontrun{
+#' # Basic PCA plot
+#' plot_pca(se, indicate = "condition")
+#'
+#' # Interactive PCA with top 1000 features
+#' plot_pca(se, n = 1000, interactive = TRUE)
+#'
+#' # PCA coordinates as data frame
+#' pca_coords <- plot_pca(se, plot = FALSE)
+#'
+#' # Plot PC1 vs PC3
+#' plot_pca(se, x = 1, y = 3)
+#' }
+#'
+#' @seealso \code{\link{plot_correlation_heatmap}}
+#'
+#' @importFrom ggplot2 ggplot aes geom_point labs theme_bw theme element_blank
+#'   element_line facet_wrap geom_text
+#' @importFrom plotly plot_ly add_trace layout
+#' @importFrom SummarizedExperiment assay colData metadata
+#' @importFrom dplyr left_join select
+#' @importFrom tibble rownames_to_column
+#' @importFrom stats prcomp complete.cases
+#'
 #' @export
 plot_pca <- function(dep, x = 1, y = 2, indicate = c("condition", "replicate"),
                      label = FALSE, n = 500, point_size = 8, label_size = 3, plot = TRUE, ID_col = "sample_name", exp = NULL, scale=F, interactive = F) {

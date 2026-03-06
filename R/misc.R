@@ -1,3 +1,44 @@
+#' Plot coefficient of variation histogram
+#'
+#' Creates a histogram visualization of the coefficient of variation (CV)
+#' for each protein across replicates within each condition.
+#'
+#' @param se A \code{SummarizedExperiment} object containing log2-transformed
+#'   proteomics data.
+#' @param id Character string specifying the column in colData to use for
+#'   sample identification. Default is "sample_name".
+#' @param scale Logical indicating whether to fix the x-axis scale from 0 to 1
+#'   (\code{TRUE}) or use automatic scaling (\code{FALSE}). Default is \code{TRUE}.
+#' @param check.names Logical passed to \code{data.frame()}. Default is \code{FALSE}.
+#'
+#' @return A \code{ggplot} object showing faceted histograms of CV values for
+#'   each condition. The median CV is indicated by a dashed vertical line and
+#'   displayed as text.
+#'
+#' @details
+#' The CV is calculated as the standard deviation divided by the mean for each
+#' protein within each condition, using the back-transformed (linear scale)
+#' intensity values. Lower CVs indicate better reproducibility across replicates.
+#'
+#' @examples
+#' \dontrun{
+#' # Basic CV plot
+#' plot_cvs(se)
+#'
+#' # Without fixed scaling
+#' plot_cvs(se, scale = FALSE)
+#' }
+#'
+#' @seealso \code{\link{plot_feature_numbers}}
+#'
+#' @importFrom ggplot2 ggplot aes geom_histogram facet_wrap geom_vline
+#'   scale_x_continuous labs theme_bw theme element_text geom_text
+#' @importFrom SummarizedExperiment assay colData
+#' @importFrom dplyr left_join group_by summarise mutate
+#' @importFrom tidyr gather
+#' @importFrom tibble rownames_to_column
+#' @importFrom scales percent
+#'
 #' @export
 plot_cvs <- function(se, id="sample_name", scale=T, check.names=F) {
 
@@ -61,6 +102,56 @@ coef_variation <- function(x) {
   coef <- sd(x) / mean(x)
 }
 
+#' Plot individual protein/feature abundance
+#'
+#' Creates boxplot or violin plot visualizations of abundance values for
+#' specific proteins or features across conditions.
+#'
+#' @param se A \code{SummarizedExperiment} object containing proteomics data.
+#' @param protein Character vector of protein/feature identifiers to plot.
+#'   Must match rownames or values in the \code{index} column.
+#' @param index Character string specifying the column in rowData to use for
+#'   matching protein identifiers. Default is \code{NULL} (use rownames).
+#' @param type Character string specifying the plot type. Options are
+#'   \code{"boxplot"} (default) or \code{"violin"}.
+#' @param id Character string specifying the column in colData to use for
+#'   sample identification. Default is "sample_name".
+#' @param interactive Logical indicating whether to create an interactive
+#'   plotly visualization. Default is \code{FALSE}.
+#'
+#' @return A \code{ggplot} object (when \code{interactive = FALSE}) or
+#'   a \code{plotly} object (when \code{interactive = TRUE}) showing the
+#'   abundance distribution for the specified proteins across conditions.
+#'
+#' @details
+#' When multiple proteins are specified, they are displayed in separate facets.
+#' Points are colored by replicate to help identify sample-specific effects.
+#' Interactive plots provide hover information showing sample names.
+#'
+#' @examples
+#' \dontrun{
+#' # Boxplot for a single protein
+#' plot_feature(se, protein = "EGFR")
+#'
+#' # Violin plot for multiple proteins
+#' plot_feature(se, protein = c("EGFR", "AKT1", "MTOR"), type = "violin")
+#'
+#' # Interactive boxplot
+#' plot_feature(se, protein = "EGFR", interactive = TRUE)
+#' }
+#'
+#' @seealso \code{\link{plot_pca}}, \code{\link{plot_feature_numbers}}
+#'
+#' @importFrom ggplot2 ggplot aes geom_boxplot geom_violin geom_jitter
+#'   position_dodge facet_wrap labs theme_bw theme element_blank element_line
+#'   scale_color_brewer
+#' @importFrom plotly plot_ly layout
+#' @importFrom SummarizedExperiment assay colData rowData
+#' @importFrom dplyr left_join group_by summarize mutate
+#' @importFrom tidyr gather
+#' @importFrom tibble rownames_to_column
+#' @importFrom readr parse_factor
+#'
 #' @export
 plot_feature <- function(se, protein, index=NULL,
                          type="boxplot", id="sample_name", interactive=F) {
@@ -217,6 +308,58 @@ plot_feature <- function(se, protein, index=NULL,
   return(p)
 }
 
+#' Plot number of identified features per sample
+#'
+#' Creates a bar plot showing the number of identified proteins/peptides/features
+#' in each sample or across TMT plexes.
+#'
+#' @param se A \code{SummarizedExperiment} object containing proteomics data.
+#' @param exp Character string specifying the experiment type. If \code{NULL},
+#'   uses the value from metadata. Options are "TMT", "LFQ", "DIA".
+#' @param feature Character string specifying the feature label for the plot
+#'   (e.g., "Proteins", "Peptides", "Sites"). If \code{NULL}, automatically
+#'   determined from metadata level.
+#' @param fill Character string specifying the colData column to use for
+#'   bar coloring. Default is "condition".
+#'
+#' @return A \code{ggplot} object showing:
+#'   \itemize{
+#'     \item For TMT: Stacked bar plot showing plex-wise vs project-wise
+#'       quantified features
+#'     \item For LFQ/DIA: Bar plot showing feature counts per sample colored
+#'       by the specified fill variable
+#'   }
+#'
+#' @details
+#' For TMT experiments, the plot distinguishes between features quantified
+#' only within a single plex ("Plex-wise") vs features quantified across
+#' all plexes ("Project-wise").
+#'
+#' For LFQ/DIA experiments, each bar represents a sample and shows the
+#' number of non-missing features.
+#'
+#' @examples
+#' \dontrun{
+#' # Basic feature number plot
+#' plot_feature_numbers(se)
+#'
+#' # Color by replicate instead of condition
+#' plot_feature_numbers(se, fill = "replicate")
+#'
+#' # Specify custom feature label
+#' plot_feature_numbers(se, feature = "Phosphosites")
+#' }
+#'
+#' @seealso \code{\link{plotCumulativeMissingPercent}}, \code{\link{plot_cvs}}
+#'
+#' @importFrom ggplot2 ggplot aes geom_bar geom_col scale_fill_manual
+#'   scale_y_continuous labs theme_bw theme element_blank element_line
+#'   element_text
+#' @importFrom SummarizedExperiment assay colData metadata
+#' @importFrom dplyr group_by summarize left_join filter if_all mutate
+#' @importFrom tidyr gather
+#' @importFrom tibble rownames_to_column
+#'
 #' @export
 plot_feature_numbers <- function(se, exp=NULL, feature=NULL, fill="condition") {
   # Show error if input is not the required classes
@@ -293,11 +436,50 @@ plot_feature_numbers <- function(se, exp=NULL, feature=NULL, fill="condition") {
   return (p)
 }
 
-#' Plot the feature count based on the cumulative missing percentage range
+#' Plot cumulative feature count vs missing percentage
 #'
-#' @param df expression dataframe
-#' @param fea_col Index column
-#' @param smp_lst A vector of samples to include
+#' Creates a line plot showing the cumulative number of features as a function
+#' of the maximum allowed missing percentage. This helps visualize data
+#' completeness and inform filtering decisions.
+#'
+#' @param se A \code{SummarizedExperiment} object containing proteomics data.
+#' @param smp_lst Character vector of sample names to include in the analysis.
+#'   If \code{NULL} (default), all samples are included.
+#' @param title Character string for the plot title. Default is empty.
+#'
+#' @return A \code{ggplot} object showing a cumulative line plot where:
+#'   \itemize{
+#'     \item X-axis: Missing percentage threshold
+#'     \item Y-axis: Cumulative number of features with missing percentage
+#'       at or below the threshold
+#'   }
+#'   The plot includes annotations showing the number of complete features,
+#'   features with less than 50% missing, and total identified features.
+#'
+#' @details
+#' This plot is useful for deciding on missing value thresholds for filtering.
+#' Features are sorted by their missing percentage, and the cumulative count
+#' shows how many features would be retained at each threshold.
+#'
+#' @examples
+#' \dontrun{
+#' # Basic cumulative missing plot
+#' plotCumulativeMissingPercent(se)
+#'
+#' # With custom title
+#' plotCumulativeMissingPercent(se, title = "Data Completeness")
+#'
+#' # For specific samples only
+#' plotCumulativeMissingPercent(se, smp_lst = c("Sample1", "Sample2", "Sample3"))
+#' }
+#'
+#' @seealso \code{\link{plot_feature_numbers}}, \code{\link{plot_missval_heatmap}}
+#'
+#' @importFrom ggplot2 ggplot aes geom_line annotate labs theme_classic theme
+#'   element_text
+#' @importFrom SummarizedExperiment assay
+#' @importFrom dplyr arrange mutate
+#' @importFrom data.table setDT
 #'
 #' @export
 plotCumulativeMissingPercent = function(se,
