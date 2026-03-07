@@ -1,7 +1,7 @@
 Package: FragPipeAnalystR
 Type: Package
 Title: FragPipe downstream analysis in R
-Version: 1.1.0
+Version: 1.1.1
 Author: Yi Hsiao
 Maintainer: Yi Hsiao <yihsiao@umich.edu>
 Description: More about what it does (maybe more than one line)
@@ -10,7 +10,7 @@ License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 Depends: 
-    R (>= 4.1)
+    R (>= 4.5)
 Imports: 
     assertthat,
     cmapR,
