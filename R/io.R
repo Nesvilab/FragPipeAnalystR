@@ -155,6 +155,21 @@ readExpDesign <- function(exp_anno_path, type = "TMT", lfq_type="Intensity", low
     if (lowercase) {
       colnames(temp_df) <- tolower(colnames(temp_df))
     }
+    if (!"sample_name" %in% colnames(temp_df)) {
+      stop("'sample_name' column is not present in the experiment annotation file.")
+    }
+    if (!"sample" %in% colnames(temp_df)) {
+      stop("'sample' column is not present in the experiment annotation file.")
+    }
+    if (!is.character(temp_df$sample_name)) {
+      temp_df$sample_name <- as.character(temp_df$sample_name)
+    }
+    if (anyDuplicated(temp_df$sample_name)) {
+      stop("Duplicated 'sample_name' detected in the experiment annotation file.")
+    }
+    if (anyDuplicated(temp_df$sample)) {
+      stop("Duplicated 'sample' detected in the experiment annotation file.")
+    }
     # to support - (dash) or name starts with number in condition column
     temp_df$condition <- make.names(temp_df$condition)
     # validate(need(try(test_TMT_annotation(temp_df)),
@@ -172,6 +187,21 @@ readExpDesign <- function(exp_anno_path, type = "TMT", lfq_type="Intensity", low
       temp_df[temp_df$label %in% samples_with_replicate, "label"] <- paste0(temp_df[temp_df$label %in% samples_with_replicate, "label"], "_1")
     }
   } else if (type == "LFQ") {
+    if (!"sample_name" %in% colnames(temp_df)) {
+      stop("'sample_name' column is not present in the experiment annotation file.")
+    }
+    if (!"sample" %in% colnames(temp_df)) {
+      stop("'sample' column is not present in the experiment annotation file.")
+    }
+    if (!is.character(temp_df$sample_name)) {
+      temp_df$sample_name <- as.character(temp_df$sample_name)
+    }
+    if (anyDuplicated(temp_df$sample_name)) {
+      stop("Duplicated 'sample_name' detected in the experiment annotation file.")
+    }
+    if (anyDuplicated(temp_df$sample)) {
+      stop("Duplicated 'sample' detected in the experiment annotation file.")
+    }
     # to support - (dash) or name starts with number in condition column
     temp_df$condition <- make.names(temp_df$condition)
 
@@ -197,6 +227,24 @@ readExpDesign <- function(exp_anno_path, type = "TMT", lfq_type="Intensity", low
     # change it to lower case
     if (lowercase) {
       colnames(temp_df) <- tolower(colnames(temp_df))
+    }
+    if (!"file" %in% colnames(temp_df)) {
+      stop("'file' column is not present in the experiment annotation file.")
+    }
+    if (!"sample_name" %in% colnames(temp_df)) {
+      stop("'sample_name' column is not present in the experiment annotation file.")
+    }
+    if (!"sample" %in% colnames(temp_df)) {
+      stop("'sample' column is not present in the experiment annotation file.")
+    }
+    if (!is.character(temp_df$sample_name)) {
+      temp_df$sample_name <- as.character(temp_df$sample_name)
+    }
+    if (anyDuplicated(temp_df$sample_name)) {
+      stop("Duplicated 'sample_name' detected in the experiment annotation file.")
+    }
+    if (anyDuplicated(temp_df$sample)) {
+      stop("Duplicated 'sample' detected in the experiment annotation file.")
     }
     # to support - (dash) or name starts with number in condition column
     temp_df$condition <- make.names(temp_df$condition)
