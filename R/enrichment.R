@@ -1371,29 +1371,32 @@ run_kinase_library <- function(se, col, p_col = NULL,
   result$kl_score        <- as.numeric(result[[score_col]])
   result$kl_neg_log10_pv <- -log10(as.numeric(result[[adj_pval_col]]) +
                                      .Machine$double.eps)
-  sig <- !is.na(result$kl_score) &
-    abs(result$kl_score) > score_thresh &
-    result$kl_neg_log10_pv > -log10(pval)
 
-  p <- ggplot(result, aes(x = kl_score, y = kl_neg_log10_pv, label = kinase)) +
-    geom_point(color = "black") +
-    theme_bw() +
+  base_theme <- list(
+    theme_bw(),
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
           panel.background = element_blank(),
-          axis.line = element_line(colour = "black")) +
+          axis.line = element_line(colour = "black")),
     labs(x = x_label, y = y_label)
-
-  if (!is.null(title)) p <- p + ggtitle(title)
+  )
 
   if (is.null(labels)) {
-    p <- p + geom_text_repel(data = result[sig, , drop = FALSE])
+    sig <- !is.na(result$kl_score) &
+      abs(result$kl_score) > score_thresh &
+      result$kl_neg_log10_pv > -log10(pval)
+    p <- ggplot(result, aes(x = kl_score, y = kl_neg_log10_pv, label = kinase)) +
+      geom_point() +
+      geom_text_repel(data = result[sig, , drop = FALSE]) +
+      base_theme
   } else {
-    p <- p +
-      geom_point(data = result[result$kinase %in% labels, , drop = FALSE],
-                 color = "red") +
-      geom_text_repel(data = result[result$kinase %in% labels, , drop = FALSE],
-                      color = "red")
+    p <- ggplot(result, aes(x = kl_score, y = kl_neg_log10_pv, label = kinase)) +
+      geom_point(data = subset(result, !kinase %in% labels), color = "black") +
+      geom_point(data = subset(result, kinase %in% labels), color = "red") +
+      geom_text_repel(data = subset(result, kinase %in% labels), color = "red") +
+      base_theme
   }
+
+  if (!is.null(title)) p <- p + ggtitle(title)
   p
 }
 
