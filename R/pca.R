@@ -64,7 +64,7 @@
 #' @seealso \code{\link{plot_correlation_heatmap}}
 #'
 #' @importFrom ggplot2 ggplot aes geom_point labs theme_bw theme element_blank
-#'   element_line facet_wrap geom_text
+#'   element_line facet_wrap geom_text scale_shape_manual
 #' @importFrom plotly plot_ly add_trace layout
 #' @importFrom SummarizedExperiment assay colData metadata
 #' @importFrom dplyr left_join select
@@ -338,6 +338,8 @@ plot_pca <- function(dep, x = 1, y = 2, indicate = c("condition", "replicate"),
       }
     }
   } else { # static plot by ggplot2
+    shape_palette <- c(16, 17, 15, 3, 7, 8, 0, 1, 2, 4, 5, 6, 9, 10, 11, 12, 13, 14, 18, 20, 21, 22, 23, 24, 25, 19)
+
     p <- ggplot(pca_df, aes(get(paste0("PC", x)), get(paste0("PC", y)))) +
       labs(
         title = paste0("PCA plot - top ", n, " variable features"),
@@ -358,6 +360,7 @@ plot_pca <- function(dep, x = 1, y = 2, indicate = c("condition", "replicate"),
         labs(col = indicate[1])
     }
     if (length(indicate) == 2) {
+      n_shapes <- nlevels(pca_df[[indicate[2]]])
       p <- p + geom_point(
         aes(
           col = pca_df[[indicate[1]]],
@@ -365,12 +368,14 @@ plot_pca <- function(dep, x = 1, y = 2, indicate = c("condition", "replicate"),
         ),
         size = point_size
       ) +
+        scale_shape_manual(values = shape_palette[seq_len(n_shapes)]) +
         labs(
           col = indicate[1],
           shape = indicate[2]
         )
     }
     if (length(indicate) == 3) {
+      n_shapes <- nlevels(pca_df[[indicate[2]]])
       p <- p + geom_point(
         aes(
           col = pca_df[[indicate[1]]],
@@ -378,6 +383,7 @@ plot_pca <- function(dep, x = 1, y = 2, indicate = c("condition", "replicate"),
         ),
         size = point_size
       ) +
+        scale_shape_manual(values = shape_palette[seq_len(n_shapes)]) +
         facet_wrap(~ pca_df[[indicate[3]]])
       labs(
         col = indicate[1],
