@@ -188,7 +188,10 @@ plot_GSEA <- function(gsea_result, categroies=15) {
 #'     \item \code{"GO Cellular Component"}: Gene Ontology Cellular Component
 #'     \item \code{"GO Molecular Function"}: Gene Ontology Molecular Function
 #'     \item \code{"Hallmark"}: MSigDB Hallmark gene sets
-#'     \item \code{"KEGG"}: KEGG pathways
+#'     \item \code{"KEGG"}: KEGG pathways (human)
+#'     \item \code{"KEGG (Mouse)"}: KEGG pathways for mouse (clusterProfiler backend only)
+#'     \item \code{"WikiPathways"}: WikiPathways (human, clusterProfiler backend only)
+#'     \item \code{"WikiPathways (Mouse)"}: WikiPathways for mouse (clusterProfiler backend only)
 #'     \item \code{"Reactome"}: Reactome pathways (Enrichr backend only)
 #'   }
 #' @param backend Character string specifying the analysis backend.
@@ -235,6 +238,8 @@ plot_GSEA <- function(gsea_result, categroies=15) {
 #'
 #' @seealso \code{\link{plot_or}}, \code{\link{GSEA_test}}
 #'
+#' @importFrom clusterProfiler enricher enrichGO enrichKEGG enrichWP bitr setReadable
+#'
 #' @export
 or_test <- function(se, database="GO Biological Process", backend="enrichr", direction="UP", log2_threshold=0.7, alpha=0.05) {
   if (backend == "enrichr") {
@@ -267,7 +272,15 @@ or_test <- function(se, database="GO Biological Process", backend="enrichr", dir
 
     constrast_columns <- df %>% select(ends_with("_significant")) %>% colnames()
     constrasts <- gsub("_significant", "", constrast_columns)
-    if (database %in% c("KEGG", "GO Biological Process", "GO Cellular Component", "GO Molecular Function", "Hallmark")) {
+    supported_dbs <- c("KEGG", "KEGG (Mouse)", "WikiPathways", "WikiPathways (Mouse)",
+                       "GO Biological Process", "GO Cellular Component",
+                       "GO Molecular Function", "Hallmark")
+    if (database %in% supported_dbs) {
+      organism_db <- if (endsWith(database, "(Mouse)")) "org.Mm.eg.db" else "org.Hs.eg.db"
+      if (database %in% c("KEGG", "KEGG (Mouse)", "WikiPathways", "WikiPathways (Mouse)")) {
+        if (!requireNamespace(organism_db, quietly = TRUE))
+          stop("Install '", organism_db, "' from Bioconductor.")
+      }
       combined_df <- data.frame(ID=character(),
                        Description=character(),
                        GeneRatio=character(),
@@ -288,30 +301,50 @@ or_test <- function(se, database="GO Biological Process", backend="enrichr", dir
           significant <- significant[significant[gsub("_significant", "_diff", contrast)] < -log2_threshold,]
         }
 
-        if (metadata(dep)$level == "protein" & metadata(dep)$exp == "TMT") {
+        if (metadata(se)$level == "protein" & metadata(se)$exp == "TMT") {
           genes <- unique(significant$Gene)
-        } else if (metadata(dep)$level == "protein" | metadata(dep)$level == "gene") {
+        } else if (metadata(se)$level == "protein" | metadata(se)$level == "gene") {
           genes <- significant$name
-        } else if (metadata(dep)$level %in% c("peptide", "site", "glycan")) {
+        } else if (metadata(se)$level %in% c("peptide", "site", "glycan")) {
           genes <- unique(significant$Gene)
         }
 
         background <- df$name
         significant <- significant[significant[gsub("_significant", "_p.adj", contrast)] < alpha,]
-        if (database == "KEGG") {
-          mappings <- bitr(gene, fromType="SYMBOL", toType=c("ENTREZID"), OrgDb="org.Hs.eg.db")
+        if (database %in% c("KEGG", "KEGG (Mouse)")) {
+          kegg_org <- if (endsWith(database, "(Mouse)")) "mmu" else "hsa"
+          mappings <- bitr(genes, fromType="SYMBOL", toType=c("ENTREZID"), OrgDb=organism_db)
           result <- enrichKEGG(gene = mappings$ENTREZID,
                                keyType = "ncbi-geneid",
-                               organism = "hsa",
+                               organism = kegg_org,
                                pvalueCutoff = 1,
                                qvalueCutoff = 1)
-          bg_mappings <- bitr(background, fromType="SYMBOL", toType=c("ENTREZID"), OrgDb="org.Hs.eg.db")
+          bg_mappings <- bitr(background, fromType="SYMBOL", toType=c("ENTREZID"), OrgDb=organism_db)
           bg_result <- enrichKEGG(gene = bg_mappings$ENTREZID,
                                  keyType = "ncbi-geneid",
-                                 organism = "hsa",
+                                 organism = kegg_org,
                                  pvalueCutoff = 1,
                                  qvalueCutoff = 1)
-          temp <- as.data.frame(setReadable(result, OrgDb = org.Hs.eg.db, keyType = "ENTREZID"))
+          temp <- as.data.frame(setReadable(result, OrgDb = organism_db, keyType = "ENTREZID"))
+          bg_temp <- as.data.frame(bg_result)
+          bg_temp <- bg_temp %>%
+            mutate(bg_IN = Count,
+                   bg_OUT = length(background) - Count) %>%
+            select(ID, bg_IN, bg_OUT)
+          temp <- temp %>% left_join(bg_temp, by = "ID")
+        } else if (database %in% c("WikiPathways", "WikiPathways (Mouse)")) {
+          wp_org <- if (endsWith(database, "(Mouse)")) "Mus musculus" else "Homo sapiens"
+          mappings <- bitr(genes, fromType="SYMBOL", toType=c("ENTREZID"), OrgDb=organism_db)
+          result <- enrichWP(gene = mappings$ENTREZID,
+                             organism = wp_org,
+                             pvalueCutoff = 1,
+                             qvalueCutoff = 1)
+          bg_mappings <- bitr(background, fromType="SYMBOL", toType=c("ENTREZID"), OrgDb=organism_db)
+          bg_result <- enrichWP(gene = bg_mappings$ENTREZID,
+                                organism = wp_org,
+                                pvalueCutoff = 1,
+                                qvalueCutoff = 1)
+          temp <- as.data.frame(setReadable(result, OrgDb = organism_db, keyType = "ENTREZID"))
           bg_temp <- as.data.frame(bg_result)
           bg_temp <- bg_temp %>%
             mutate(bg_IN = Count,
@@ -322,7 +355,7 @@ or_test <- function(se, database="GO Biological Process", backend="enrichr", dir
           if (database == "Hallmark") {
             hallmark <- msigdbr::msigdbr(species = "Homo sapiens", category = "H") %>%
               dplyr::select(gs_name, gene_symbol)
-            result <- enricher(gene, TERM2GENE = hallmark, pvalueCutoff = 1, qvalueCutoff = 1)
+            result <- enricher(genes, TERM2GENE = hallmark, pvalueCutoff = 1, qvalueCutoff = 1)
             bg_result <- enricher(background, TERM2GENE = hallmark, pvalueCutoff = 1, qvalueCutoff = 1)
           } else{
             database_mappings <- c(
@@ -330,7 +363,7 @@ or_test <- function(se, database="GO Biological Process", backend="enrichr", dir
               "GO Cellular Component" = "CC",
               "GO Molecular Function" = "MF"
             )
-            result <- enrichGO(gene = gene,
+            result <- enrichGO(gene = genes,
                                OrgDb = org.Hs.eg.db,
                                ont = database_mappings[database],
                                keyType = "SYMBOL",
@@ -361,7 +394,6 @@ or_test <- function(se, database="GO Biological Process", backend="enrichr", dir
       combined_df <- rename(combined_df, all_of(lookup))
       combined_df$var <- database
       combined_df$Overlap <- paste0(combined_df$IN, "/", as.numeric(gsub("/.*", "", combined_df$BgRatio)))
-      # combined_df$Odds.Ratio <- (combined_df$IN * (as.numeric(gsub(".*/", "", combined_df$BgRatio)) - as.numeric(gsub("/.*", "", combined_df$BgRatio)))) / (combined_df$OUT * as.numeric(gsub("/.*", "", combined_df$BgRatio)))
       # inspired from enrichr https://github.com/MaayanLab/enrichr_issues/issues/3#issuecomment-780078054
       combined_df$Odds.Ratio <- (combined_df$IN * (20000 - as.numeric(gsub("/.*", "", combined_df$BgRatio)))) / (combined_df$OUT * as.numeric(gsub("/.*", "", combined_df$BgRatio)))
       combined_df$log_odds <- log2((combined_df$IN * combined_df$bg_OUT) / (combined_df$OUT * combined_df$bg_IN))
@@ -370,6 +402,7 @@ or_test <- function(se, database="GO Biological Process", backend="enrichr", dir
       combined_df$p.adjust_hyper = p.adjust(combined_df$p_hyper, method = "BH")
       return(combined_df)
     } else {
+      cat(paste0("The database specified: ", database, " is not supported."))
       return(NULL)
     }
   } else {
@@ -845,29 +878,27 @@ enrichr_mod <- function(genes, databases = NULL) {
 #' Prepare data for PTM-SEA analysis
 #'
 #' Exports phosphoproteomics data in GCT format for PTM Signature Enrichment
-#' Analysis (PTM-SEA) using ssGSEA.
+#' Analysis (PTM-SEA) using ssGSEA2.
 #'
 #' @param se A \code{SummarizedExperiment} object containing phosphoproteomics data.
-#'   Must have \code{exp_type = "phospho"} in metadata and a "SequenceWindow"
-#'   column in rowData.
-#' @param col Character string specifying the column name in rowData containing
-#'   the values to export (e.g., log2 fold change column).
+#' @param score_col Character string specifying the column name in rowData
+#'   containing the score values to export (e.g. a log2 fold change column like
+#'   \code{"Treatment_vs_Control_diff"}).
+#' @param id_col Character string specifying the column name in rowData containing
+#'   peptide/site identifiers. Default is \code{"SequenceWindow"}.
 #' @param outfile Character string specifying the output file path for the GCT file.
 #'
-#' @return Writes a GCT format file to the specified path. Returns \code{NULL} invisibly.
+#' @return Writes a GCT format file to the specified path. Returns \code{NULL}
+#'   invisibly.
 #'
 #' @details
-#' PTM-SEA is a method for identifying dysregulated PTM signatures based on
-#' phosphoproteomics data. The output GCT file can be used with the ssGSEA
-#' module in GenePattern or other compatible tools.
-#'
-#' The function creates peptide identifiers by converting sequence windows to
-#' uppercase and appending "-p" to indicate phosphorylation sites.
+#' Peptide identifiers are formed by converting \code{id_col} values to uppercase
+#' and appending \code{"-p"}.  Rows where \code{score_col} is \code{NA} are
+#' dropped.  Duplicate identifiers are made unique with \code{make.unique()}.
 #'
 #' @examples
 #' \dontrun{
-#' # Prepare data for PTM-SEA analysis
-#' prepare_PTMSEA(se_phospho, col = "Treatment_vs_Control_diff",
+#' prepare_PTMSEA(se_phospho, score_col = "Treatment_vs_Control_diff",
 #'                outfile = "ptmsea_input.gct")
 #' }
 #'
@@ -876,14 +907,15 @@ enrichr_mod <- function(genes, databases = NULL) {
 #' @importFrom cmapR GCT
 #'
 #' @export
-prepare_PTMSEA <- function(se, col, outfile) {
-  if (metadata(se)$exp_type == "phospho") {
-    temp <- data.frame(as.data.frame(rowData(se))["SequenceWindow"], as.data.frame(rowData(se))[col])
-    colnames(temp) <- c("peptide", col)
-    temp <- temp[!is.na(temp[[col]]),]
-    gct <- new("GCT", mat=as.matrix(temp[,col, drop=F]), rid=paste0(make.unique(toupper(temp$peptide)), "-p"))
-    write_gct(gct, outfile, appenddim = F)
-  }
+prepare_PTMSEA <- function(se, score_col, id_col = "SequenceWindow", outfile) {
+  temp <- data.frame(as.data.frame(rowData(se))[id_col],
+                     as.data.frame(rowData(se))[score_col])
+  colnames(temp) <- c("peptide", score_col)
+  temp <- temp[!is.na(temp[[score_col]]), ]
+  gct <- new("GCT", mat = as.matrix(temp[, score_col, drop = FALSE]),
+             rid = paste0(make.unique(toupper(temp$peptide)), "-p"))
+  write_gct(gct, outfile, appenddim = FALSE)
+  invisible(NULL)
 }
 
 write_gct <- function(ds, ofile, precision=4, appenddim=TRUE, ver=3) {
@@ -971,13 +1003,22 @@ write_gct <- function(ds, ofile, precision=4, appenddim=TRUE, ver=3) {
 #' from a GCT output file.
 #'
 #' @param gct_file Character string specifying the path to the PTM-SEA output
-#'   GCT file (typically generated by ssGSEA).
-#' @param col Character string specifying the score column to visualize.
+#'   GCT file (typically generated by ssGSEA2).
+#' @param score_col Character string specifying the score column to visualize.
+#' @param selected_collections Character vector of PTMsigDB collection prefixes
+#'   to include. Default is \code{c('PERT', 'PATH', 'KINASE', 'DISEASE')}.
 #' @param selected_concepts Character vector of specific concept/signature IDs
-#'   to display. Default is \code{NULL} (show top enriched concepts).
+#'   to display. Default is \code{NULL} (show top/bottom enriched concepts).
 #' @param num_concepts Numeric value specifying the number of top and bottom
 #'   enriched concepts to display when \code{selected_concepts} is \code{NULL}.
-#'   Default is 5 (showing 10 total).
+#'   Default is 5 (showing up to 10 total).
+#' @param direction Character string to filter by enrichment direction.
+#'   Options: \code{"Both"} (default), \code{"Up"} (positive scores only),
+#'   \code{"Down"} (negative scores only).
+#' @param fdr_pvalue_cutoff Numeric value for the FDR-adjusted p-value threshold.
+#'   Default is 0.05.
+#' @param score_cutoff Numeric value for the minimum absolute enrichment score.
+#'   Default is 1.
 #'
 #' @return A \code{ggplot} object showing a dot plot where:
 #'   \itemize{
@@ -986,45 +1027,70 @@ write_gct <- function(ds, ofile, precision=4, appenddim=TRUE, ver=3) {
 #'     \item Point size: Signature set overlap percentage
 #'     \item Point color: FDR-adjusted p-value
 #'   }
-#'   Returns \code{NULL} if the specified column is not found.
+#'   Returns \code{NULL} if the specified column is not found or no signatures
+#'   pass the filters.
 #'
 #' @examples
 #' \dontrun{
-#' # Visualize PTM-SEA results
-#' p <- visualize_PTMSEA("ptmsea_output.gct", col = "Treatment_vs_Control")
+#' # Visualize all significant PTM-SEA results
+#' p <- visualize_PTMSEA("ptmsea_output.gct", score_col = "Treatment_vs_Control")
 #'
-#' # Show specific kinase signatures
-#' p <- visualize_PTMSEA("ptmsea_output.gct", col = "Treatment_vs_Control",
-#'                       selected_concepts = c("KINASE_A", "KINASE_B"))
+#' # Show only kinase signatures
+#' p <- visualize_PTMSEA("ptmsea_output.gct", score_col = "Treatment_vs_Control",
+#'                       selected_collections = "KINASE")
+#'
+#' # Show specific signatures
+#' p <- visualize_PTMSEA("ptmsea_output.gct", score_col = "Treatment_vs_Control",
+#'                       selected_concepts = c("KINASE-PSP_AKT1", "KINASE-PSP_AKT2"))
 #' }
 #'
 #' @seealso \code{\link{prepare_PTMSEA}}
 #'
 #' @importFrom cmapR parse_gctx mat meta
-#' @importFrom ggplot2 ggplot aes_string geom_point scale_size_continuous
+#' @importFrom ggplot2 ggplot aes geom_point scale_size_continuous
 #'   scale_color_continuous theme_bw
 #'
 #' @export
-visualize_PTMSEA <- function(gct_file, col, selected_concepts=NULL, num_concepts=5) {
+visualize_PTMSEA <- function(gct_file, score_col,
+                             selected_collections = c("PERT", "PATH", "KINASE", "DISEASE"),
+                             selected_concepts = NULL,
+                             num_concepts = 5,
+                             direction = "Both",
+                             fdr_pvalue_cutoff = 0.05,
+                             score_cutoff = 1) {
   gct <- parse_gctx(gct_file)
   score_cols <- colnames(mat(gct))
-  if (!col %in% score_cols) {
+  if (!score_col %in% score_cols) {
     return(NULL)
   }
   data <- cbind(meta(gct, dimension = "row"), mat(gct))
+  data <- data[grepl(paste0("^(", paste(selected_collections, collapse = "|"), ")"), data$id), ]
   if (is.null(selected_concepts)) {
-    data <- data[order(data[[col]], decreasing = T),]
-    data <- data[c(c(1:num_concepts), (dim(data)[1] - num_concepts + 1):dim(data)[1]),]
+    data <- data[order(data[[score_col]]), ]
+    data <- data[c(seq_len(num_concepts), (nrow(data) - num_concepts + 1):nrow(data)), ]
   } else {
-    data <- data[data$id %in% selected_concepts,]
-    data <- data[order(data[[col]], decreasing = F),]
+    data <- data[data$id %in% selected_concepts, ]
+    data <- data[order(data[[score_col]]), ]
   }
-  data$id <- factor(data$id, levels=data$id)
-  p <- ggplot(data, aes_string(x = col, y = "id", color=paste0("fdr.pvalue.", col), size=paste0("Signature.set.overlap.percent.", col))) +
+  if (direction == "Up") {
+    data <- data[data[[score_col]] > 0, ]
+  } else if (direction == "Down") {
+    data <- data[data[[score_col]] < 0, ]
+  }
+  fdr_col <- paste0("fdr.pvalue.", score_col)
+  data <- data[abs(data[[score_col]]) >= score_cutoff & data[[fdr_col]] <= fdr_pvalue_cutoff, ]
+  if (nrow(data) == 0) {
+    return(NULL)
+  }
+  data$id <- factor(data$id, levels = data$id)
+  overlap_col <- paste0("Signature.set.overlap.percent.", score_col)
+  p <- ggplot(data, aes(x = .data[[score_col]], y = .data[["id"]],
+                        color = .data[[fdr_col]],
+                        size = .data[[overlap_col]])) +
     geom_point() +
-    scale_size_continuous(range = c(0.5, 11), name="Overlap percentage") +
-    scale_color_continuous(low="red", high="blue", name = "p.adjust",
-                           guide=guide_colorbar(reverse=T, label.vjust = 0.5)) +
+    scale_size_continuous(range = c(0.5, 11), name = "Overlap percentage") +
+    scale_color_continuous(low = "red", high = "blue", name = "FDR p-value",
+                           guide = guide_colorbar(reverse = TRUE, label.vjust = 0.5)) +
     theme_bw()
   return(p)
 }
