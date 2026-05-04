@@ -72,8 +72,9 @@
 #' @importFrom stats prcomp complete.cases
 #'
 #' @export
-plot_pca <- function(dep, x = 1, y = 2, indicate = c("condition", "replicate"), method = 'PCA',
+plot_pca <- function(dep, x = 1, y = 2, indicate = c("condition", "replicate"), method = c('PCA', 'MDS'),
                      label = FALSE, n = 500, point_size = 8, label_size = 3, plot = TRUE, ID_col = "sample_name", exp = NULL, scale=F, interactive = F) {
+  method <- match.arg(method)
   if (is.null(exp)) {
     exp <- metadata(dep)$exp
   }
@@ -180,7 +181,7 @@ plot_pca <- function(dep, x = 1, y = 2, indicate = c("condition", "replicate"), 
       left_join(., data.frame(colData(dep)), by = c("rowname" = ID_col))
 
     # Calculate the percentage of variance explained
-    percent <- round(100 * mds$eig / sum(mds$eig[mds$eig > 0]), 1)
+    percent <- round(100 * pmax(mds$eig, 0) / sum(mds$eig[mds$eig > 0]), 1)
   }
 
 
@@ -447,7 +448,7 @@ plot_umap <- function(dep, indicate = c("condition", "replicate"), min_dist = 0.
   if (!is.null(indicate)) {
     if (length(indicate) > 3) {
       stop("Too many features in 'indicate'
-        Run plot_pca() with a maximum of 3 indicate features")
+        Run plot_umap() with a maximum of 3 indicate features")
     }
     if (any(!indicate %in% columns)) {
       stop(
@@ -476,7 +477,7 @@ plot_umap <- function(dep, indicate = c("condition", "replicate"), min_dist = 0.
   } else if (n > nrow(data)) {
     message(paste(
       "'n' argument is larger than number of features availble(",
-      nrow(data), ").", nrow(data), "features will be used for PCA calculation."
+      nrow(data), ").", nrow(data), "features will be used for UMAP calculation."
     ))
     df <- data
     n <- nrow(data)
@@ -492,7 +493,8 @@ plot_umap <- function(dep, indicate = c("condition", "replicate"), min_dist = 0.
   on.exit({ .Random.seed <<- old_seed })
   set.seed(seed)
   # umap calculation
-  umap_mat <- uwot::umap(t(df), n_neighbors = n_neighbors, min_dist = min_dist)
+  umap_mat <- uwot::umap(t(df), n_neighbors = n_neighbors, min_dist = min_dist,
+                         metric = metric, init = init)
   umap_df <- umap_mat %>%
     data.frame() %>%
     setNames(paste0("UMAP", 1:ncol(.))) %>%
@@ -507,16 +509,16 @@ plot_umap <- function(dep, indicate = c("condition", "replicate"), min_dist = 0.
 
   if (interactive) {
     if (length(indicate) == 1) {
-      p <- plot_ly(data = pca_df, type = "scatter", mode = "markers", marker = list(size = point_size)) %>%
+      p <- plot_ly(data = umap_df, type = "scatter", mode = "markers", marker = list(size = point_size)) %>%
         plotly::layout(
-          title = paste0("PCA plot (", n, " features used)"),
-          xaxis = list(title = paste0("PC", x, ": ", percent[x], "%")),
-          yaxis = list(title = paste0("PC", y, ": ", percent[y], "%"))
+          title = paste0("UMAP plot (", n, " features used)"),
+          xaxis = list(title = "UMAP1"),
+          yaxis = list(title = "UMAP2")
         ) %>%
         add_trace(
           type = "scatter",
-          x = ~PC1,
-          y = ~PC2,
+          x = ~UMAP1,
+          y = ~UMAP2,
           color = as.formula(paste0("~", indicate[1])),
           mode = "markers",
           legendgroup = indicate[1],
@@ -524,40 +526,39 @@ plot_umap <- function(dep, indicate = c("condition", "replicate"), min_dist = 0.
         )
     } else if (length(indicate) == 2) {
       if (exp == "TMT") {
-        pca_df$plex <- as.factor(pca_df$plex)
+        umap_df$plex <- as.factor(umap_df$plex)
         p <- plot_ly() %>%
-          # Overlay color for gears
           add_trace(
-            data = pca_df, type = "scatter",
-            x = ~PC1,
-            y = ~PC2,
+            data = umap_df, type = "scatter",
+            x = ~UMAP1,
+            y = ~UMAP2,
             symbol = as.formula(paste0("~", indicate[2])),
             marker = list(color = "grey", size = point_size + 3),
-            text = pca_df$sample_name,
+            text = umap_df$sample_name,
             hoverinfo = "text",
             mode = "markers",
             legendgroup = indicate[2],
             legendgrouptitle_text = indicate[2]
           ) %>%
           add_trace(
-            data = pca_df, type = "scatter",
-            x = ~PC1,
-            y = ~PC2,
+            data = umap_df, type = "scatter",
+            x = ~UMAP1,
+            y = ~UMAP2,
             marker = list(size = point_size),
             color = as.formula(paste0("~", indicate[1])),
             mode = "markers",
-            text = pca_df$sample_name,
+            text = umap_df$sample_name,
             hoverinfo = "text",
             legendgroup = indicate[1],
             legendgrouptitle_text = indicate[1]
           ) %>%
           add_trace(
-            data = pca_df, type = "scatter",
-            x = ~PC1,
-            y = ~PC2,
+            data = umap_df, type = "scatter",
+            x = ~UMAP1,
+            y = ~UMAP2,
             marker = list(size = point_size),
             color = as.formula(paste0("~", "plex")),
-            text = pca_df$sample_name,
+            text = umap_df$sample_name,
             hoverinfo = "text",
             mode = "markers",
             legendgroup = "plex",
@@ -565,11 +566,11 @@ plot_umap <- function(dep, indicate = c("condition", "replicate"), min_dist = 0.
             xaxis = "x2", yaxis = "y2", visible = F
           ) %>%
           plotly::layout(
-            title = paste0("PCA plot (", n, " features used)"),
-            xaxis = list(title = paste0("PC", x, ": ", percent[x], "%")),
-            xaxis2 = list(title = paste0("PC", x, ": ", percent[x], "%"), overlaying = "x", visible = F),
-            yaxis = list(title = paste0("PC", y, ": ", percent[y], "%")),
-            yaxis2 = list(title = paste0("PC", y, ": ", percent[y], "%"), overlaying = "y", visible = F),
+            title = paste0("UMAP plot (", n, " features used)"),
+            xaxis = list(title = "UMAP1"),
+            xaxis2 = list(title = "UMAP1", overlaying = "x", visible = F),
+            yaxis = list(title = "UMAP2"),
+            yaxis2 = list(title = "UMAP2", overlaying = "y", visible = F),
             legend = list(
               itemclick = FALSE,
               itemdoubleclick = FALSE,
@@ -583,20 +584,14 @@ plot_umap <- function(dep, indicate = c("condition", "replicate"), min_dist = 0.
                     method = "update",
                     args = list(
                       list(visible = unlist(Map(rep, x = c(T, T, F), each = c(
-                        length(unique(pca_df$condition)),
-                        length(unique(pca_df$replicate)),
-                        length(unique(pca_df$plex))
+                        length(unique(umap_df$condition)),
+                        length(unique(umap_df$replicate)),
+                        length(unique(umap_df$plex))
                       )))),
                       list(
-                        xaxis = list(
-                          title = paste0("PC", x, ": ", percent[x], "%"),
-                          visible = TRUE
-                        ),
+                        xaxis = list(title = "UMAP1", visible = TRUE),
                         xaxis2 = list(overlaying = "x", visible = FALSE),
-                        yaxis = list(
-                          title = paste0("PC", y, ": ", percent[y], "%"),
-                          visible = TRUE
-                        ),
+                        yaxis = list(title = "UMAP2", visible = TRUE),
                         yaxis2 = list(overlaying = "y", visible = FALSE)
                       )
                     ),
@@ -606,21 +601,15 @@ plot_umap <- function(dep, indicate = c("condition", "replicate"), min_dist = 0.
                     method = "update",
                     args = list(
                       list(visible = unlist(Map(rep, x = c(F, F, T), each = c(
-                        length(unique(pca_df$condition)),
-                        length(unique(pca_df$replicate)),
-                        length(unique(pca_df$plex))
+                        length(unique(umap_df$condition)),
+                        length(unique(umap_df$replicate)),
+                        length(unique(umap_df$plex))
                       )))),
                       list(
                         xaxis = list(visible = F),
-                        xaxis2 = list(
-                          title = paste0("PC", x, ": ", percent[x], "%"),
-                          overlaying = "x", visible = T
-                        ),
+                        xaxis2 = list(title = "UMAP1", overlaying = "x", visible = T),
                         yaxis = list(visible = F),
-                        yaxis2 = list(
-                          title = paste0("PC", y, ": ", percent[y], "%"),
-                          overlaying = "y", visible = T
-                        )
+                        yaxis2 = list(title = "UMAP2", overlaying = "y", visible = T)
                       )
                     ),
                     label = "by plex"
@@ -631,37 +620,36 @@ plot_umap <- function(dep, indicate = c("condition", "replicate"), min_dist = 0.
           )
       } else {
         p <- plot_ly(
-          data = pca_df, type = "scatter",
+          data = umap_df, type = "scatter",
           mode = "markers", marker = list(size = point_size), text = ~rowname
         ) %>%
-          # Overlay color for gears
           add_trace(
             type = "scatter",
-            x = ~PC1,
-            y = ~PC2,
+            x = ~UMAP1,
+            y = ~UMAP2,
             symbol = as.formula(paste0("~", indicate[2])),
             marker = list(color = "grey", size = point_size + 3),
             mode = "markers",
-            text = pca_df$sample_name,
+            text = umap_df$sample_name,
             hoverinfo = "text",
             legendgroup = indicate[2],
             legendgrouptitle_text = indicate[2]
           ) %>%
           add_trace(
             type = "scatter",
-            x = ~PC1,
-            y = ~PC2,
+            x = ~UMAP1,
+            y = ~UMAP2,
             color = as.formula(paste0("~", indicate[1])),
             mode = "markers",
-            text = pca_df$sample_name,
+            text = umap_df$sample_name,
             hoverinfo = "text",
             legendgroup = indicate[1],
             legendgrouptitle_text = indicate[1]
           ) %>%
           plotly::layout(
-            title = paste0("PCA plot (", n, " features used)"),
-            xaxis = list(title = paste0("PC", x, ": ", percent[x], "%")),
-            yaxis = list(title = paste0("PC", y, ": ", percent[y], "%")),
+            title = paste0("UMAP plot (", n, " features used)"),
+            xaxis = list(title = "UMAP1"),
+            yaxis = list(title = "UMAP2"),
             legend = list(
               itemclick = FALSE,
               itemdoubleclick = FALSE,
@@ -711,11 +699,11 @@ plot_umap <- function(dep, indicate = c("condition", "replicate"), min_dist = 0.
         ),
         size = point_size
       ) +
-        facet_wrap(~ umap_df[[indicate[3]]])
-      labs(
-        col = indicate[1],
-        shape = indicate[2]
-      )
+        facet_wrap(~ umap_df[[indicate[3]]]) +
+        labs(
+          col = indicate[1],
+          shape = indicate[2]
+        )
     }
     if (label) {
       p <- p + geom_text(aes(label = rowname), size = label_size)
@@ -726,7 +714,7 @@ plot_umap <- function(dep, indicate = c("condition", "replicate"), min_dist = 0.
     return(p)
   } else {
     df <- umap_df %>%
-      select(rowname, UMAP1, UMAP2, match(indicate, colnames(umap_df)))
+      select(rowname, UMAP1, UMAP2, all_of(indicate))
     colnames(df)[1] <- "sample"
     return(df)
   }
