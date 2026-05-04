@@ -482,6 +482,35 @@ plot_feature_numbers <- function(se, exp=NULL, feature=NULL, fill="condition") {
 #' @importFrom data.table setDT
 #'
 #' @export
+#' Plot Venn diagram of features across SE objects
+#'
+#' @param se_list A named list of \code{SummarizedExperiment} objects, all at
+#'   the same metadata level.
+#' @param title Plot title. Default is \code{""}.
+#' @param fill_color Character vector of fill colors. Default is
+#'   \code{c("#4E79A7", "#F28E2B")}.
+#' @param stroke_size Numeric stroke size. Default is \code{0.5}.
+#' @param text_size Numeric text size. Default is \code{4}.
+#' @return A \code{ggplot} object.
+#' @importFrom ggvenn ggvenn
+#' @importFrom ggplot2 ggtitle
+#' @importFrom SummarizedExperiment metadata
+#' @export
+plot_venn_se <- function(se_list, title = "",
+                         fill_color = c("#4E79A7", "#F28E2B"),
+                         stroke_size = 0.5, text_size = 4) {
+  lvls <- sapply(se_list, function(se) metadata(se)$level)
+  if (length(unique(lvls)) > 1) {
+    stop("All SE objects must have the same metadata level. Got: ",
+         paste(names(lvls), lvls, sep = "=", collapse = ", "))
+  }
+  ggvenn(lapply(se_list, rownames),
+         fill_color = fill_color,
+         stroke_size = stroke_size,
+         text_size   = text_size) +
+    ggtitle(title)
+}
+
 plotCumulativeMissingPercent = function(se,
                                         smp_lst = NULL,
                                         title = ""){

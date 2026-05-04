@@ -185,3 +185,157 @@ plot_glycan_feature_numbers <- function(se, exp=NULL, feature=NULL, legacy=T) {
   }
   return (p)
 }
+
+#' Get glycoforms per glycosite
+#'
+#' @param se A \code{SummarizedExperiment} object at the glycan level.
+#' @return A data frame with columns \code{site} and \code{n_glycoforms}.
+#' @export
+get_glycoforms_per_site <- function(se) {
+  ids_no_mass <- gsub(" _.*$", "", rownames(se))
+  site_ids <- sapply(strsplit(ids_no_mass, "_"), function(x) paste(x[1], x[length(x) - 1], sep = "_"))
+  gpsite <- as.data.frame(table(site_ids))
+  colnames(gpsite) <- c("site", "n_glycoforms")
+  gpsite$n_glycoforms <- as.integer(gpsite$n_glycoforms)
+  gpsite
+}
+
+#' Plot glycoforms per site distribution
+#'
+#' @param se A \code{SummarizedExperiment} object at the glycan level.
+#' @param title Plot title. Default is \code{""}.
+#' @return A \code{ggplot} object.
+#' @importFrom ggplot2 ggplot aes geom_col geom_text scale_x_continuous
+#'   scale_y_continuous theme_classic labs expansion
+#' @export
+plot_glycoforms_per_site <- function(se, title = "") {
+  gpsite <- get_glycoforms_per_site(se)
+  count_df <- as.data.frame(table(gpsite$n_glycoforms))
+  colnames(count_df) <- c("n_glycoforms", "count")
+  count_df$n_glycoforms <- as.integer(as.character(count_df$n_glycoforms))
+  x_max <- max(count_df$n_glycoforms)
+  ggplot(count_df, aes(x = n_glycoforms, y = count)) +
+    geom_col(fill = "steelblue", width = 0.7) +
+    geom_text(aes(label = count), vjust = -0.3, size = 3) +
+    scale_x_continuous(breaks = 1:x_max, limits = c(0.5, x_max + 0.5)) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
+    theme_classic() +
+    labs(title = title, x = "Glycoforms per site", y = "# sites")
+}
+
+#' Get glycoforms per protein
+#'
+#' @param se A \code{SummarizedExperiment} object at the glycan level.
+#' @return A data frame with columns \code{protein} and \code{n_glycoforms}.
+#' @export
+get_glycoforms_per_protein <- function(se) {
+  protein_ids <- sapply(strsplit(rownames(se), "_"), `[[`, 1)
+  gprot <- as.data.frame(table(protein_ids))
+  colnames(gprot) <- c("protein", "n_glycoforms")
+  gprot$n_glycoforms <- as.integer(gprot$n_glycoforms)
+  gprot
+}
+
+#' Plot glycoforms per protein distribution
+#'
+#' @param se A \code{SummarizedExperiment} object at the glycan level.
+#' @param title Plot title. Default is \code{""}.
+#' @return A \code{ggplot} object.
+#' @importFrom ggplot2 ggplot aes geom_col geom_text scale_x_continuous
+#'   scale_y_continuous theme_classic labs expansion
+#' @export
+plot_glycoforms_per_protein <- function(se, title = "") {
+  gprot <- get_glycoforms_per_protein(se)
+  count_df <- as.data.frame(table(gprot$n_glycoforms))
+  colnames(count_df) <- c("n_glycoforms", "count")
+  count_df$n_glycoforms <- as.integer(as.character(count_df$n_glycoforms))
+  x_max <- max(count_df$n_glycoforms)
+  ggplot(count_df, aes(x = n_glycoforms, y = count)) +
+    geom_col(fill = "steelblue", width = 0.7) +
+    geom_text(aes(label = count), vjust = -0.3, size = 3) +
+    scale_x_continuous(breaks = 1:x_max, limits = c(0.5, x_max + 0.5)) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
+    theme_classic() +
+    labs(title = title, x = "Glycoforms per protein", y = "# proteins")
+}
+
+#' Get glycosites per protein
+#'
+#' @param se A \code{SummarizedExperiment} object at the glycosite level.
+#' @return A data frame with columns \code{protein} and \code{n_glycosites}.
+#' @export
+get_glycosite_per_protein <- function(se) {
+  protein_ids <- sapply(strsplit(rownames(se), "_"), `[[`, 1)
+  gprot <- as.data.frame(table(protein_ids))
+  colnames(gprot) <- c("protein", "n_glycosites")
+  gprot$n_glycosites <- as.integer(gprot$n_glycosites)
+  gprot
+}
+
+#' Plot glycosites per protein distribution
+#'
+#' @param se A \code{SummarizedExperiment} object at the glycosite level.
+#' @param title Plot title. Default is \code{""}.
+#' @return A \code{ggplot} object.
+#' @importFrom ggplot2 ggplot aes geom_col geom_text scale_x_continuous
+#'   scale_y_continuous theme_classic labs expansion
+#' @export
+plot_glycosite_per_protein <- function(se, title = "") {
+  gprot <- get_glycosite_per_protein(se)
+  count_df <- as.data.frame(table(gprot$n_glycosites))
+  colnames(count_df) <- c("n_glycosites", "count")
+  count_df$n_glycosites <- as.integer(as.character(count_df$n_glycosites))
+  x_max <- max(count_df$n_glycosites)
+  ggplot(count_df, aes(x = n_glycosites, y = count)) +
+    geom_col(fill = "steelblue", width = 0.7) +
+    geom_text(aes(label = count), vjust = -0.3, size = 3) +
+    scale_x_continuous(breaks = 1:x_max, limits = c(0.5, x_max + 0.5)) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
+    theme_classic() +
+    labs(title = title, x = "Glycosites per protein", y = "# proteins")
+}
+
+#' Plot glycan distribution across multiple datasets
+#'
+#' @param se_list A named list of \code{SummarizedExperiment} objects, all at
+#'   the same metadata level.
+#' @param legacy Logical; use legacy row name parsing for FragPipe < 23.0.
+#'   Default is \code{FALSE}.
+#' @return A \code{ggplot} object with glycan categories faceted by dataset.
+#' @importFrom ggplot2 ggplot aes geom_bar theme_bw theme element_blank
+#'   element_line
+#' @importFrom SummarizedExperiment metadata
+#' @export
+plot_glycan_distribution_combined <- function(se_list, legacy = FALSE) {
+  lvls <- sapply(se_list, function(se) metadata(se)$level)
+  if (length(unique(lvls)) > 1) {
+    stop("All SE objects must have the same metadata level. Got: ",
+         paste(names(lvls), lvls, sep = "=", collapse = ", "))
+  }
+
+  df <- do.call(rbind, lapply(names(se_list), function(nm) {
+    se <- se_list[[nm]]
+    compositions <- if (legacy) {
+      gsub(" _.*", "", gsub(".*_Hex", "Hex", rownames(se)))
+    } else {
+      gsub(".*_", "", gsub(" _.*$", "", rownames(se)))
+    }
+    d <- as.data.frame(table(sapply(compositions, N_glycan_property)))
+    colnames(d) <- c("Category", "Freq")
+    d$Dataset <- nm
+    d
+  }))
+
+  df$Category <- factor(df$Category,
+                        levels = c("sialylated", "fuco-sialylated",
+                                   "fucosylated", "neutral", "oligomannose"))
+  df$Dataset <- factor(df$Dataset, levels = names(se_list))
+
+  ggplot(df, aes(x = Category, y = Freq, fill = Dataset)) +
+    geom_bar(stat = "identity", position = "dodge") +
+    theme_bw() +
+    theme(panel.border     = element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.line        = element_line(colour = "black"))
+}
