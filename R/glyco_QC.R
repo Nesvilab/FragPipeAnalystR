@@ -130,7 +130,8 @@ plot_glycan_distribution <- function(se, legacy=F) {
 #'
 #' @importFrom ggplot2 ggplot aes geom_bar scale_fill_manual scale_y_continuous
 #'   labs theme_bw theme element_blank element_line element_text
-#' @importFrom SummarizedExperiment assay colData metadata
+#' @importFrom SummarizedExperiment assay colData
+#' @importFrom S4Vectors metadata
 #' @importFrom dplyr filter if_all
 #'
 #' @export
@@ -304,7 +305,7 @@ plot_glycosite_per_protein <- function(se, title = "") {
 #' @return A \code{ggplot} object with glycan categories faceted by dataset.
 #' @importFrom ggplot2 ggplot aes geom_bar theme_bw theme element_blank
 #'   element_line
-#' @importFrom SummarizedExperiment metadata
+#' @importFrom S4Vectors metadata
 #' @export
 plot_glycan_distribution_combined <- function(se_list, legacy = FALSE) {
   lvls <- sapply(se_list, function(se) metadata(se)$level)
