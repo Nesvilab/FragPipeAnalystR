@@ -1146,8 +1146,9 @@ prepare_kinome <- function(se, col, outfile, format="asterisk", p_col=NULL) {
 #'
 #' @seealso \code{\link{prepare_kinome}}
 #'
-#' @importFrom ggplot2 ggplot aes geom_point geom_text_repel theme_bw theme
+#' @importFrom ggplot2 ggplot aes geom_point theme_bw theme
 #'   element_blank element_line labs
+#' @importFrom ggrepel geom_text_repel
 #' @importFrom data.table fread
 #'
 #' @export

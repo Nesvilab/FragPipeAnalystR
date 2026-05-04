@@ -288,7 +288,8 @@ plot_feature_correlation_distribution_combo <- function(feature_cor_df, alpha = 
 #'   \code{\link{calculate_sample_wise_correlation_SE}}.
 #' @return A \code{ggplot} object.
 #' @importFrom ggplot2 ggplot aes geom_point xlab ylab ggtitle theme_bw theme
-#'   element_text reorder
+#'   element_text
+#' @importFrom stats reorder
 #' @importFrom dplyr arrange
 #' @export
 plot_sample_wise_correlation <- function(sample_cor_df) {
@@ -320,7 +321,7 @@ plot_sample_wise_correlation <- function(sample_cor_df) {
 #' @return A \code{ggplot} object.
 #' @importFrom ggvenn ggvenn
 #' @importFrom ggplot2 ggtitle
-#' @importFrom SummarizedExperiment metadata
+#' @importFrom S4Vectors metadata
 #' @export
 plot_venn_se <- function(se_list, title = "",
                          fill_color = c("#4E79A7", "#F28E2B"),
