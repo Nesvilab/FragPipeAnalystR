@@ -1244,3 +1244,107 @@ visualize_kinome <- function(tsv_file, labels=NULL, log2fc=1, pval=0.05, legacy=
   }
   return(p)
 }
+
+#' Kinase activity Z-score inference (RoKAI)
+#'
+#' Matches DE phosphosite data to a curated kinase-substrate library via
+#' flanking sequences, then computes a Z-score for each kinase across all
+#' contrasts (RoKAI formulation: \code{Z = mean(FC_substrates) * sqrt(m) / sd(all FC)}).
+#'
+#' @param dep A \code{SummarizedExperiment} after \code{test_limma()}.
+#'   Must have a \code{SequenceWindow} column in \code{rowData}.
+#' @param ks_library data.frame with columns: \code{source} (kinase name),
+#'   \code{target} (substrate), \code{sequence} (15-char flanking window),
+#'   \code{mor} (mode of regulation, +1/-1).
+#' @param min_targets Minimum number of matched substrates required per kinase.
+#' @return data.frame with columns: \code{kinase}, \code{n_substrates},
+#'   \code{score} (Z), \code{p_value}, \code{adj_p_value}, \code{contrast}.
+#' @seealso \code{\link{build_ks_data}}, \code{\link{prepare_PTMSEA}}
+#' @importFrom SummarizedExperiment rowData
+#' @export
+run_kinase_zscore <- function(dep, ks_library, min_targets = 3L) {
+  rd <- as.data.frame(SummarizedExperiment::rowData(dep))
+  if (!"SequenceWindow" %in% colnames(rd))
+    stop("SequenceWindow column missing — kinase activity requires site-level data.")
+
+  all_contrasts <- gsub("_significant$", "",
+                        grep("_significant$", colnames(rd), value = TRUE))
+  if (length(all_contrasts) == 0)
+    stop("No contrast columns found. Run test_limma() first.")
+
+  sw_upper  <- toupper(trimws(rd$SequenceWindow))
+  stat_list <- lapply(all_contrasts, function(ct) {
+    dc <- paste0(ct, "_diff")
+    if (!dc %in% colnames(rd)) return(NULL)
+    rd[[dc]]
+  })
+  names(stat_list) <- all_contrasts
+  stat_list <- Filter(Negate(is.null), stat_list)
+  mat <- do.call(cbind, stat_list)
+  rownames(mat) <- sw_upper
+
+  if (anyDuplicated(rownames(mat))) {
+    row_mean_abs <- rowMeans(abs(mat), na.rm = TRUE)
+    mat <- mat[order(-row_mean_abs), , drop = FALSE]
+    mat <- mat[!duplicated(rownames(mat)), , drop = FALSE]
+  }
+  valid <- !is.na(rownames(mat)) & nchar(rownames(mat)) > 0 &
+    rowSums(!is.na(mat)) > 0
+  mat <- mat[valid, , drop = FALSE]
+  mat[is.na(mat)] <- 0
+
+  lib_seq <- toupper(trimws(ks_library$sequence))
+  matched <- lib_seq %in% rownames(mat) & !is.na(lib_seq)
+  if (sum(matched) == 0)
+    stop("No kinase-substrate library entries match the input data.")
+
+  network <- data.frame(
+    source = ks_library$source[matched],
+    target = lib_seq[matched],
+    mor    = as.numeric(ks_library$mor[matched]),
+    stringsAsFactors = FALSE
+  )
+  network <- network[!duplicated(paste0(network$source, "|", network$target)), ]
+  message(sprintf("[KA] %d KS pairs (%d kinases) matched to %d sites",
+                  nrow(network), length(unique(network$source)), nrow(mat)))
+
+  min_targets    <- as.integer(min_targets)
+  kinase_targets <- split(network$target, network$source)
+  kinase_targets <- kinase_targets[lengths(kinase_targets) >= min_targets]
+  if (length(kinase_targets) == 0)
+    stop("No kinases with >= ", min_targets, " matched substrates.")
+
+  contrast_names <- colnames(mat)
+  res_list <- list()
+  for (j in seq_along(contrast_names)) {
+    fc_vec <- mat[, j]
+    delta  <- stats::sd(fc_vec, na.rm = TRUE)
+    if (is.na(delta) || delta == 0) delta <- 1
+    for (kinase in names(kinase_targets)) {
+      sub_fc <- fc_vec[kinase_targets[[kinase]]]
+      sub_fc <- sub_fc[!is.na(sub_fc)]
+      m      <- length(sub_fc)
+      if (m < min_targets) next
+      z    <- mean(sub_fc) * sqrt(m) / delta
+      pval <- stats::pnorm(-abs(z))
+      res_list[[length(res_list) + 1]] <- data.frame(
+        kinase       = kinase,
+        n_substrates = m,
+        score        = z,
+        p_value      = pval,
+        contrast     = contrast_names[j],
+        stringsAsFactors = FALSE
+      )
+    }
+  }
+  res <- do.call(rbind, res_list)
+  if (is.null(res) || nrow(res) == 0)
+    stop("Kinase activity inference produced no results.")
+
+  res <- do.call(rbind, lapply(split(res, res$contrast), function(df) {
+    df$adj_p_value <- stats::p.adjust(df$p_value, method = "BH")
+    df
+  }))
+  rownames(res) <- NULL
+  res
+}
