@@ -16,7 +16,7 @@ renv::install("bioc::SummarizedExperiment")
 renv::install("bioc::cmapR")
 renv::install("bioc::ConsensusClusterPlus")
 # latest version
-renv::install("Nesvilab/FragPipeAnalystR@v1.0.4")
+renv::install("Nesvilab/FragPipeAnalystR@v1.1.1")
 # or dev version
 renv::install("Nesvilab/FragPipeAnalystR")
 

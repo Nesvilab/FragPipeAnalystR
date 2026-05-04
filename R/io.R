@@ -8,7 +8,32 @@
 #   Check Package:             'Cmd + Shift + E'
 #   Test Package:              'Cmd + Shift + T'
 
-# load SummarizedExperiment object from RData file (exported from FragPipe-Analyst)
+#' Read SummarizedExperiment from RData file
+#'
+#' Loads a SummarizedExperiment object from an RData file exported from
+#' FragPipe-Analyst or saved from a previous R session.
+#'
+#' @param file Character string specifying the path to the RData file.
+#'
+#' @return A \code{SummarizedExperiment} object containing the proteomics data
+#'   with assay data, rowData, colData, and metadata.
+#'
+#' @details
+#' This function provides a convenient way to load analysis results that were
+#' previously saved or exported from the FragPipe-Analyst Shiny application.
+#' The first object in the RData file is returned.
+#'
+#' @examples
+#' \dontrun{
+#' # Load a previously saved analysis
+#' se <- readResultRData("my_analysis.RData")
+#'
+#' # Check the loaded data
+#' se
+#' }
+#'
+#' @seealso \code{\link{make_se_from_files}}
+#'
 #' @export
 readResultRData <- function(file) {
   env <- new.env()
@@ -130,6 +155,21 @@ readExpDesign <- function(exp_anno_path, type = "TMT", lfq_type="Intensity", low
     if (lowercase) {
       colnames(temp_df) <- tolower(colnames(temp_df))
     }
+    if (!"sample_name" %in% colnames(temp_df)) {
+      stop("'sample_name' column is not present in the experiment annotation file.")
+    }
+    if (!"sample" %in% colnames(temp_df)) {
+      stop("'sample' column is not present in the experiment annotation file.")
+    }
+    if (!is.character(temp_df$sample_name)) {
+      temp_df$sample_name <- as.character(temp_df$sample_name)
+    }
+    if (anyDuplicated(temp_df$sample_name)) {
+      stop("Duplicated 'sample_name' detected in the experiment annotation file.")
+    }
+    if (anyDuplicated(temp_df$sample)) {
+      stop("Duplicated 'sample' detected in the experiment annotation file.")
+    }
     # to support - (dash) or name starts with number in condition column
     temp_df$condition <- make.names(temp_df$condition)
     # validate(need(try(test_TMT_annotation(temp_df)),
@@ -147,6 +187,21 @@ readExpDesign <- function(exp_anno_path, type = "TMT", lfq_type="Intensity", low
       temp_df[temp_df$label %in% samples_with_replicate, "label"] <- paste0(temp_df[temp_df$label %in% samples_with_replicate, "label"], "_1")
     }
   } else if (type == "LFQ") {
+    if (!"sample_name" %in% colnames(temp_df)) {
+      stop("'sample_name' column is not present in the experiment annotation file.")
+    }
+    if (!"sample" %in% colnames(temp_df)) {
+      stop("'sample' column is not present in the experiment annotation file.")
+    }
+    if (!is.character(temp_df$sample_name)) {
+      temp_df$sample_name <- as.character(temp_df$sample_name)
+    }
+    if (anyDuplicated(temp_df$sample_name)) {
+      stop("Duplicated 'sample_name' detected in the experiment annotation file.")
+    }
+    if (anyDuplicated(temp_df$sample)) {
+      stop("Duplicated 'sample' detected in the experiment annotation file.")
+    }
     # to support - (dash) or name starts with number in condition column
     temp_df$condition <- make.names(temp_df$condition)
 
@@ -173,6 +228,24 @@ readExpDesign <- function(exp_anno_path, type = "TMT", lfq_type="Intensity", low
     if (lowercase) {
       colnames(temp_df) <- tolower(colnames(temp_df))
     }
+    if (!"file" %in% colnames(temp_df)) {
+      stop("'file' column is not present in the experiment annotation file.")
+    }
+    if (!"sample_name" %in% colnames(temp_df)) {
+      stop("'sample_name' column is not present in the experiment annotation file.")
+    }
+    if (!"sample" %in% colnames(temp_df)) {
+      stop("'sample' column is not present in the experiment annotation file.")
+    }
+    if (!is.character(temp_df$sample_name)) {
+      temp_df$sample_name <- as.character(temp_df$sample_name)
+    }
+    if (anyDuplicated(temp_df$sample_name)) {
+      stop("Duplicated 'sample_name' detected in the experiment annotation file.")
+    }
+    if (anyDuplicated(temp_df$sample)) {
+      stop("Duplicated 'sample' detected in the experiment annotation file.")
+    }
     # to support - (dash) or name starts with number in condition column
     temp_df$condition <- make.names(temp_df$condition)
     # make sure replicate column is not empty
@@ -183,9 +256,82 @@ readExpDesign <- function(exp_anno_path, type = "TMT", lfq_type="Intensity", low
   return(temp_df)
 }
 
-# function interface to create SummarizedExperiment object from two files:
-# - quantification table
-# - experiment annotation file
+#' Create SummarizedExperiment from FragPipe output files
+#'
+#' Reads FragPipe quantification output and experiment annotation files to
+#' create a SummarizedExperiment object for downstream analysis.
+#'
+#' @param quant_table_path Character string specifying the path to the
+#'   quantification table (e.g., gene/protein/peptide-level abundance report).
+#' @param exp_anno_path Character string specifying the path to the experiment
+#'   annotation file (experiment_annotation.tsv).
+#' @param type Character string specifying the quantification method.
+#'   Options are:
+#'   \itemize{
+#'     \item \code{"TMT"}: TMT-based quantification (default)
+#'     \item \code{"LFQ"}: Label-free quantification
+#'     \item \code{"DIA"}: Data-independent acquisition
+#'   }
+#' @param level Character string specifying the quantification level.
+#'   Options are:
+#'   \itemize{
+#'     \item \code{"gene"}: Gene-level (default for TMT)
+#'     \item \code{"protein"}: Protein-level (default for LFQ/DIA)
+#'     \item \code{"peptide"}: Peptide-level
+#'     \item \code{"site"}: PTM site-level
+#'     \item \code{"glycan"}: Glycan-level
+#'   }
+#' @param exp_type Character string specifying the experiment type for
+#'   specialized analyses. Options include "global", "phospho", "glyco",
+#'   "acetyl", "ubiquit". Default is \code{NULL}.
+#' @param log2transform Logical indicating whether to log2-transform intensity
+#'   values. Default is \code{NULL} (auto-determined based on type).
+#' @param lfq_type Character string specifying which LFQ intensity to use.
+#'   Options are "Intensity" (default), "MaxLFQ", or "Spectral Count".
+#' @param gencode Logical indicating whether to filter for GENCODE/Ensembl
+#'   identifiers (DIA only). Default is \code{FALSE}.
+#' @param additional_cols Character vector of additional column names to
+#'   preserve in rowData. Default is \code{NULL}.
+#'
+#' @return A \code{SummarizedExperiment} object with:
+#'   \itemize{
+#'     \item \code{assay}: Log2-transformed intensity matrix
+#'     \item \code{rowData}: Feature annotations (gene, protein, peptide info)
+#'     \item \code{colData}: Sample metadata (condition, replicate, etc.)
+#'     \item \code{metadata}: Experiment type, level, and other settings
+#'   }
+#'
+#' @details
+#' This is the primary function for importing FragPipe output into R.
+#' The function automatically handles different file formats based on the
+#' specified type and level. Zero values are converted to NA, and
+#' log2 transformation is applied where appropriate.
+#'
+#' @examples
+#' \dontrun{
+#' # Import TMT data
+#' se <- make_se_from_files("gene_abundance.tsv", "experiment_annotation.tsv",
+#'                          type = "TMT", level = "gene")
+#'
+#' # Import LFQ data with MaxLFQ intensities
+#' se <- make_se_from_files("combined_protein.tsv", "experiment_annotation.tsv",
+#'                          type = "LFQ", lfq_type = "MaxLFQ")
+#'
+#' # Import DIA peptide data
+#' se <- make_se_from_files("peptide_report.tsv", "experiment_annotation.tsv",
+#'                          type = "DIA", level = "peptide")
+#'
+#' # Import phosphoproteomics data
+#' se <- make_se_from_files("site_abundance.tsv", "experiment_annotation.tsv",
+#'                          type = "TMT", level = "site", exp_type = "phospho")
+#' }
+#'
+#' @seealso \code{\link{make_unique}}, \code{\link{make_se_customized}},
+#'   \code{\link{readResultRData}}
+#'
+#' @importFrom SummarizedExperiment SummarizedExperiment colData colData<-
+#'   rowData rowData<- metadata metadata<-
+#'
 #' @export
 make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", level = NULL, exp_type=NULL,
                                log2transform = NULL, lfq_type = "Intensity", gencode = F, additional_cols=NULL) {
@@ -396,21 +542,46 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
 }
 
 
-#' Make unique names
+#' Generate unique feature identifiers
 #'
-#' \code{make_unique} generates unique identifiers
-#' for a proteomics dataset based on "name" and "id" columns. (from DEP)
+#' Creates unique identifiers for a proteomics dataset based on specified
+#' name and ID columns. This is required before creating a SummarizedExperiment
+#' object to ensure each row has a unique identifier.
 #'
-#' @param proteins Data.frame,
-#' Protein table for which unique names will be created.
-#' @param names Character(1),
-#' Name of the column containing feature names.
-#' @param ids Character(1),
-#' Name of the column containing feature IDs.
-#' @param delim Character(1),
-#' Sets the delimiter separating the feature names within one protein group.
-#' @return A data.frame with the additional variables
-#' "name" and "ID" containing unique names and identifiers, respectively.
+#' @param proteins A data.frame containing the protein/peptide data table.
+#' @param names Character string specifying the column name containing
+#'   feature names (e.g., "Gene" or "Protein ID").
+#' @param ids Character string specifying the column name containing
+#'   feature identifiers (e.g., "Protein.Group" or "Index").
+#' @param delim Character string specifying the delimiter used to separate
+#'   multiple names within a single entry. Default is ";".
+#'
+#' @return A data.frame with two additional columns:
+#'   \itemize{
+#'     \item \code{name}: Unique feature names (uses ID if name is missing)
+#'     \item \code{ID}: Feature identifiers (same as ids column)
+#'   }
+#'   Names are made unique by appending numbers when duplicates exist.
+#'
+#' @details
+#' This function is adapted from the DEP package. When duplicate names are
+#' encountered, they are made unique by appending ".1", ".2", etc.
+#' If a name is empty or NA, the ID is used instead.
+#'
+#' @examples
+#' \dontrun{
+#' # Make unique identifiers for protein data
+#' proteins_unique <- make_unique(protein_table, "Gene", "Protein.Group")
+#'
+#' # Make unique identifiers for peptide data
+#' peptides_unique <- make_unique(peptide_table, "Protein ID", "Index")
+#' }
+#'
+#' @seealso \code{\link{make_se_from_files}}, \code{\link{make_se_customized}}
+#'
+#' @importFrom tibble is_tibble
+#' @importFrom dplyr mutate
+#'
 #' @export
 make_unique <- function(proteins, names, ids, delim = ";") {
   # Show error if inputs are not the required classes
@@ -459,26 +630,62 @@ make_unique <- function(proteins, names, ids, delim = ";") {
   return(proteins_unique)
 }
 
-# internal functions to make SummarizedExperiment object
-# original: make_se from
-# https://github.com/arnesmits/DEP/blob/b425d8d0db67b15df4b8bcf87729ef0bf5800256/R/functions.R
-#' Data.frame to SummarizedExperiment object
-#' conversion using an experimental design
+#' Create SummarizedExperiment from data.frame
 #'
-#' \code{make_se_customized} creates a SummarizedExperiment object
-#' based on two data.frames: the protein table and experimental design.
+#' Converts a protein/peptide data.frame and experimental design into a
+#' SummarizedExperiment object. This is the core function for creating
+#' analysis-ready data structures.
 #'
-#' @param proteins_unique Data.frame,
-#' Protein table with unique names annotated in the 'name' column
-#' (output from \code{\link{make_unique}()}).
-#' @param columns Integer vector,
-#' Column numbers indicating the columns containing the assay data.
-#' @param expdesign Data.frame,
-#' Experimental design with 'label', 'condition' and 'replicate' information.
-#' @param exp quantification method i.e. LFQ, TMT, or DIA
-#' @param level which level of the quantification table summarized at. For example, protein or peptide
-#' @return A SummarizedExperiment object
-#' with log2-transformed values.
+#' @param proteins_unique A data.frame with unique feature identifiers,
+#'   typically output from \code{\link{make_unique}()}. Must contain
+#'   'name' and 'ID' columns.
+#' @param columns Integer vector specifying the column indices containing
+#'   the intensity/abundance data.
+#' @param expdesign A data.frame containing the experimental design with
+#'   required columns: 'label', 'condition', 'replicate', and 'sample_name'.
+#' @param log2transform Logical indicating whether to log2-transform the
+#'   intensity values. Default is \code{FALSE}.
+#' @param exp Character string specifying the quantification method.
+#'   Options are "LFQ", "TMT", or "DIA". Default is "LFQ".
+#' @param lfq_type Character string specifying the LFQ intensity type
+#'   (for LFQ experiments). Default is \code{NULL}.
+#' @param level Character string specifying the quantification level
+#'   (e.g., "protein", "peptide", "site"). Default is \code{NULL}.
+#' @param exp_type Character string specifying the experiment type
+#'   (e.g., "global", "phospho"). Default is \code{NULL}.
+#'
+#' @return A \code{SummarizedExperiment} object containing:
+#'   \itemize{
+#'     \item \code{assay}: Intensity matrix (optionally log2-transformed)
+#'     \item \code{rowData}: Feature annotations
+#'     \item \code{colData}: Sample metadata from expdesign
+#'     \item \code{metadata}: Analysis settings (exp, level, exp_type, etc.)
+#'   }
+#'   Zero values in the intensity data are converted to NA.
+#'
+#' @details
+#' This function is adapted from the DEP package. It performs the following:
+#' \enumerate{
+#'   \item Extracts intensity columns based on indices
+#'   \item Converts zeros to NA
+#'   \item Optionally log2-transforms the data
+#'   \item Matches samples between data and experimental design
+#'   \item Creates the SummarizedExperiment structure
+#' }
+#'
+#' @examples
+#' \dontrun{
+#' # Create SE from prepared data
+#' se <- make_se_customized(proteins_unique, columns = 5:20,
+#'                          expdesign = exp_design, log2transform = TRUE,
+#'                          exp = "LFQ", level = "protein")
+#' }
+#'
+#' @seealso \code{\link{make_unique}}, \code{\link{make_se_from_files}}
+#'
+#' @importFrom SummarizedExperiment SummarizedExperiment rowData rowData<-
+#' @importFrom tibble is_tibble
+#'
 #' @export
 make_se_customized <- function(proteins_unique, columns, expdesign, log2transform = F, exp="LFQ", lfq_type=NULL,
                                level=NULL, exp_type=NULL) {

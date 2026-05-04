@@ -1,8 +1,63 @@
+#' Differential expression analysis using limma
+#'
+#' Performs differential expression analysis on a SummarizedExperiment object
+#' using the limma package with empirical Bayes moderation.
+#'
+#' @param se A \code{SummarizedExperiment} object containing log2-transformed
+#'   proteomics data. Must contain 'name' column in rowData and 'label',
+#'   'condition', 'replicate' columns in colData.
+#' @param type Character string specifying the type of contrasts to test.
+#'   Options are:
+#'   \itemize{
+#'     \item \code{"control"}: Test all conditions against a specified control.
+#'     \item \code{"all"}: Test all pairwise combinations of conditions.
+#'     \item \code{"others"}: Test each condition against all other conditions combined.
+#'     \item \code{"manual"}: Use manually specified contrasts via the \code{test} parameter.
+#'   }
+#' @param control Character vector specifying the control condition(s).
+#'   Required when \code{type = "control"}. Can specify multiple controls.
+#' @param test Character vector of manual contrasts to test when
+#'   \code{type = "manual"}. Contrasts should be in the format
+#'   "condition1_vs_condition2".
+#' @param design_formula A formula specifying the design matrix.
+#'   Default is \code{~ 0 + condition}. The first term should be 'condition'.
+#' @param paired Logical indicating whether to perform paired analysis.
+#'   If \code{TRUE}, adds replicate to the design formula.
+#' @param numeric_var Character vector of variable names in colData that should
+#'   be treated as numeric covariates rather than factors.
+#'
+#' @return A \code{SummarizedExperiment} object with differential expression
+#'   results added to rowData. For each contrast, the following columns are added:
+#'   \itemize{
+#'     \item \code{[contrast]_diff}: Log2 fold change
+#'     \item \code{[contrast]_CI.L}: Lower confidence interval
+#'     \item \code{[contrast]_CI.R}: Upper confidence interval
+#'     \item \code{[contrast]_p.val}: Raw p-value
+#'     \item \code{[contrast]_p.adj}: BH-adjusted p-value
+#'   }
+#'
+#' @examples
+#' \dontrun{
+#' # Test all conditions against control
+#' se_diff <- test_limma(se, type = "control", control = "Ctrl")
+#'
+#' # Test all pairwise comparisons
+#' se_diff <- test_limma(se, type = "all")
+#'
+#' # Manual contrast
+#' se_diff <- test_limma(se, type = "manual", test = "Treatment_vs_Control")
+#'
+#' # Paired analysis
+#' se_diff <- test_limma(se, type = "control", control = "Ctrl", paired = TRUE)
+#' }
+#'
+#' @seealso \code{\link{test_diff}}, \code{\link{add_rejections}}, \code{\link{plot_volcano}}
+#'
 #' @export
 test_limma <- function(se, type = c("control", "all", "others", "manual"),
                        control = NULL, test = NULL,
                        design_formula = formula(~ 0 + condition),
-                       paired = FALSE) {
+                       paired = FALSE, numeric_var = NULL) {
 
   # Show error if inputs are not the required classes
   assertthat::assert_that(inherits(se, "SummarizedExperiment"),
@@ -62,7 +117,12 @@ test_limma <- function(se, type = c("control", "all", "others", "manual"),
 
   # Obtain variable factors
   for(var in variables) {
-    temp <- factor(col_data[[var]])
+    val <- col_data[[var]]
+    if (var %in% numeric_var) {
+      temp <- as.numeric(val)
+    } else {
+      temp <- factor(val)
+    }
     assign(var, temp)
   }
 
@@ -209,6 +269,60 @@ test_limma <- function(se, type = c("control", "all", "others", "manual"),
   return(se)
 }
 
+#' Differential expression analysis using limma with fdrtool
+#'
+#' Performs differential expression analysis on a SummarizedExperiment object
+#' using the limma package with fdrtool for FDR estimation. This function uses
+#' an alternative FDR calculation method compared to \code{\link{test_limma}}.
+#'
+#' @param se A \code{SummarizedExperiment} object containing log2-transformed
+#'   proteomics data. Must contain 'name' and 'ID' columns in rowData and
+#'   'label', 'condition', 'replicate' columns in colData.
+#' @param type Character string specifying the type of contrasts to test.
+#'   Options are:
+#'   \itemize{
+#'     \item \code{"control"}: Test all conditions against a specified control.
+#'     \item \code{"all"}: Test all pairwise combinations of conditions.
+#'     \item \code{"manual"}: Use manually specified contrasts via the \code{test} parameter.
+#'   }
+#' @param control Character string specifying the control condition.
+#'   Required when \code{type = "control"}.
+#' @param test Character vector of manual contrasts to test when
+#'   \code{type = "manual"}. Contrasts should be in the format
+#'   "condition1_vs_condition2".
+#' @param design_formula A formula specifying the design matrix.
+#'   Default is \code{~ 0 + condition}.
+#'
+#' @return A \code{SummarizedExperiment} object with differential expression
+#'   results added to rowData. For each contrast, the following columns are added:
+#'   \itemize{
+#'     \item \code{[contrast]_diff}: Log2 fold change
+#'     \item \code{[contrast]_CI.L}: Lower confidence interval
+#'     \item \code{[contrast]_CI.R}: Upper confidence interval
+#'     \item \code{[contrast]_p.val}: Raw p-value
+#'     \item \code{[contrast]_p.adj}: Adjusted p-value (q-value from fdrtool)
+#'   }
+#'
+#' @details
+#' This function differs from \code{\link{test_limma}} in that it uses the
+#' fdrtool package to estimate local false discovery rates, which can provide
+#' more accurate FDR estimates in some cases. The fdrtool approach is based on
+#' empirical null modeling.
+#'
+#' @examples
+#' \dontrun{
+#' # Test all conditions against control
+#' se_diff <- test_diff(se, type = "control", control = "Ctrl")
+#'
+#' # Test all pairwise comparisons
+#' se_diff <- test_diff(se, type = "all")
+#'
+#' # Manual contrast
+#' se_diff <- test_diff(se, type = "manual", test = "Treatment_vs_Control")
+#' }
+#'
+#' @seealso \code{\link{test_limma}}, \code{\link{add_rejections}}, \code{\link{plot_volcano}}
+#'
 #' @export
 test_diff <- function(se, type = c("control", "all", "manual"),
                       control = NULL, test = NULL,
@@ -469,7 +583,63 @@ add_rejections <- function(diff, alpha = 0.05, lfc = 1) {
   return(diff)
 }
 
-# plot_volcano_new from FragPipe-Analyst
+#' Create a volcano plot for differential expression results
+#'
+#' Generates a volcano plot showing log2 fold changes vs. -log10 p-values
+#' for a specified contrast from differential expression analysis.
+#'
+#' @param dep A \code{SummarizedExperiment} object containing differential
+#'   expression results from \code{\link{test_limma}} or \code{\link{test_diff}},
+#'   with significance annotations from \code{\link{add_rejections}}.
+#' @param contrast Character string specifying which contrast to plot.
+#'   Must match a contrast name from the differential expression analysis
+#'   (e.g., "Treatment_vs_Control").
+#' @param label_size Numeric value specifying the size of protein labels.
+#'   Default is 3.
+#' @param name_col Character string specifying which column from rowData to use
+#'   for labeling points. Default is \code{NULL}, which uses "ID".
+#' @param add_names Logical indicating whether to add labels for significant
+#'   proteins. Default is \code{TRUE}.
+#' @param adjusted Logical indicating whether to use adjusted p-values
+#'   (\code{TRUE}) or raw p-values (\code{FALSE}). Default is \code{TRUE}.
+#' @param plot Logical indicating whether to return a plot (\code{TRUE}) or
+#'   a data frame (\code{FALSE}). Default is \code{TRUE}.
+#' @param alpha Numeric value for the significance threshold on adjusted/raw
+#'   p-values. Default is 0.05.
+#' @param lfc Numeric value for the log2 fold change threshold. Default is 1.
+#'
+#' @return If \code{plot = TRUE}, returns a \code{ggplot} object.
+#'   If \code{plot = FALSE}, returns a data frame with columns:
+#'   \itemize{
+#'     \item \code{protein}: Protein name
+#'     \item \code{log2_fold_change}: Log2 fold change
+#'     \item \code{p_value_-log10} or \code{adjusted_p_value_-log10}: -log10 transformed p-value
+#'     \item \code{signif}: Logical indicating significance
+#'   }
+#'
+#' @examples
+#' \dontrun{
+#' # Basic volcano plot
+#' plot_volcano(se_diff, contrast = "Treatment_vs_Control")
+#'
+#' # Without labels
+#' plot_volcano(se_diff, contrast = "Treatment_vs_Control", add_names = FALSE)
+#'
+#' # Custom significance thresholds
+#' plot_volcano(se_diff, contrast = "Treatment_vs_Control", alpha = 0.01, lfc = 2)
+#'
+#' # Get data instead of plot
+#' volcano_data <- plot_volcano(se_diff, contrast = "Treatment_vs_Control", plot = FALSE)
+#' }
+#'
+#' @seealso \code{\link{test_limma}}, \code{\link{test_diff}}, \code{\link{add_rejections}},
+#'   \code{\link{plot_peptide_volcano}}
+#'
+#' @importFrom ggplot2 ggplot aes geom_vline geom_point geom_text labs theme_bw
+#'   theme element_blank element_line scale_color_manual
+#' @importFrom ggrepel geom_text_repel
+#' @importFrom dplyr filter arrange select
+#'
 #' @export
 plot_volcano <- function(dep, contrast, label_size = 3, name_col = NULL,
                          add_names = TRUE, adjusted = T, plot = TRUE, alpha = 0.05, lfc = 1) {
@@ -634,6 +804,59 @@ plot_volcano <- function(dep, contrast, label_size = 3, name_col = NULL,
   }
 }
 
+#' Create a volcano plot for peptide-level differential expression
+#'
+#' Generates a volcano plot for peptide or site-level data, with options to
+#' highlight specific peptides and show related peptides from the same protein.
+#'
+#' @param dep A \code{SummarizedExperiment} object containing peptide or site-level
+#'   differential expression results. Must have metadata level set to "peptide" or "site".
+#' @param contrast Character string specifying which contrast to plot.
+#' @param peptides Character vector of peptide IDs to highlight in the plot.
+#'   Default is \code{NA} (no specific highlighting).
+#' @param show_other_peptides Logical indicating whether to show other peptides
+#'   from the same protein(s) as the highlighted peptides in blue. Default is \code{TRUE}.
+#' @param show_gene Logical indicating whether to display gene names in labels
+#'   instead of full peptide IDs. Default is \code{FALSE}.
+#' @param label_size Numeric value specifying the size of peptide labels.
+#'   Default is 3.
+#' @param name_col Character string specifying which column from rowData to use
+#'   for labeling points. Default is \code{NULL}, which uses "ID".
+#' @param add_names Logical indicating whether to add labels for significant
+#'   peptides. Default is \code{TRUE}.
+#' @param adjusted Logical indicating whether to use adjusted p-values
+#'   (\code{TRUE}) or raw p-values (\code{FALSE}). Default is \code{TRUE}.
+#' @param alpha Numeric value for the significance threshold. Default is 0.05.
+#' @param lfc Numeric value for the log2 fold change threshold. Default is 1.
+#'
+#' @return A \code{ggplot} object showing the peptide volcano plot with:
+#'   \itemize{
+#'     \item Grey points for non-significant peptides
+#'     \item Black points for significant peptides
+#'     \item Maroon points for specified peptides of interest
+#'     \item Blue points for other peptides from the same protein (if \code{show_other_peptides = TRUE})
+#'   }
+#'
+#' @examples
+#' \dontrun{
+#' # Basic peptide volcano plot
+#' plot_peptide_volcano(se_peptide, contrast = "Treatment_vs_Control")
+#'
+#' # Highlight specific peptides
+#' plot_peptide_volcano(se_peptide, contrast = "Treatment_vs_Control",
+#'                      peptides = c("PEPTIDE_1", "PEPTIDE_2"))
+#'
+#' # Show gene names in labels
+#' plot_peptide_volcano(se_peptide, contrast = "Treatment_vs_Control",
+#'                      peptides = c("PEPTIDE_1"), show_gene = TRUE)
+#' }
+#'
+#' @seealso \code{\link{plot_volcano}}, \code{\link{test_limma}}, \code{\link{add_rejections}}
+#'
+#' @importFrom ggplot2 ggplot aes geom_vline geom_point geom_text labs theme_bw
+#'   theme element_blank element_line scale_color_manual
+#' @importFrom ggrepel geom_text_repel
+#'
 #' @export
 plot_peptide_volcano <- function(dep, contrast, peptides=NA, show_other_peptides=T, show_gene=F,
                                  label_size = 3, name_col = NULL,

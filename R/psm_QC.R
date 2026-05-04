@@ -1,5 +1,36 @@
-
-# generate a barplot for number of PSM across TMT plex sets
+#' Plot PSM counts across TMT plex sets
+#'
+#' Creates a bar plot showing the total number of peptide-spectrum matches
+#' (PSMs) identified in each TMT plex set by reading psm.tsv files from
+#' the FragPipe output directory.
+#'
+#' @param result_dir Character string specifying the path to the FragPipe
+#'   results directory containing subdirectories with psm.tsv files.
+#'
+#' @return A \code{ggplot} object showing a bar plot where:
+#'   \itemize{
+#'     \item X-axis: Plex number
+#'     \item Y-axis: Number of PSMs
+#'     \item Title: Displays the median PSM count across plexes
+#'   }
+#'
+#' @details
+#' The function reads all psm.tsv files from subdirectories within the
+#' specified result directory. This is useful for quality control to
+#' identify plexes with unusually low or high PSM counts.
+#'
+#' @examples
+#' \dontrun{
+#' # Plot PSM counts from FragPipe output
+#' PSM_barplot("/path/to/fragpipe/results")
+#' }
+#'
+#' @seealso \code{\link{glycoPSM_barplot}}
+#'
+#' @importFrom ggplot2 ggplot aes geom_bar theme ggtitle ylab xlab
+#'   element_blank element_line element_text
+#' @importFrom data.table fread
+#'
 #' @export
 PSM_barplot <- function(result_dir) {
   total_count <- count()
@@ -22,7 +53,46 @@ PSM_barplot <- function(result_dir) {
   return(psm_bar)
 }
 
-# generate a barplot for number of glyco PSM across TMT plex sets
+#' Plot glyco-PSM counts across TMT plex sets
+#'
+#' Creates a bar plot showing the number of glycopeptide-spectrum matches
+#' identified in each TMT plex set, optionally filtered by q-value.
+#'
+#' @param result_dir Character string specifying the path to the FragPipe
+#'   results directory containing subdirectories with psm.tsv files.
+#' @param qval_filter Logical indicating whether to apply q-value filtering
+#'   to glyco-PSMs. Default is \code{FALSE}.
+#' @param qval_threshould Numeric value for the glycan q-value threshold
+#'   when \code{qval_filter = TRUE}. Default is 0.01.
+#'
+#' @return A \code{ggplot} object showing a bar plot where:
+#'   \itemize{
+#'     \item X-axis: Plex number
+#'     \item Y-axis: Number of glyco-PSMs
+#'     \item Title: Displays median count and q-value threshold if applied
+#'   }
+#'
+#' @details
+#' Glyco-PSMs are identified as PSMs with non-NA values in the "Glycan q-value"
+#' column. This function is useful for quality control of glycoproteomics
+#' experiments to ensure consistent glycopeptide identification across plexes.
+#'
+#' @examples
+#' \dontrun{
+#' # Plot all glyco-PSMs
+#' glycoPSM_barplot("/path/to/fragpipe/results")
+#'
+#' # Plot filtered glyco-PSMs (q-value <= 0.01)
+#' glycoPSM_barplot("/path/to/fragpipe/results", qval_filter = TRUE,
+#'                  qval_threshould = 0.01)
+#' }
+#'
+#' @seealso \code{\link{PSM_barplot}}, \code{\link{plot_glycan_distribution}}
+#'
+#' @importFrom ggplot2 ggplot aes geom_bar theme ggtitle ylab xlab
+#'   element_blank element_line element_text
+#' @importFrom data.table fread
+#'
 #' @export
 glycoPSM_barplot <- function(result_dir, qval_filter=F, qval_threshould=0.01) {
   total_count <- c()
