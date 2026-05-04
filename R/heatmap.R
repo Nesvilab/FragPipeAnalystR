@@ -711,3 +711,195 @@ plot_replicate_heatmap <- function(se,
   gg_heatmap <- ggplotify::as.ggplot(ht)
   return(gg_heatmap)
 }
+
+#' ORA Pathway Heatmap across all contrasts
+#'
+#' Takes the data frame returned by \code{or_test()} and draws a
+#' \code{ComplexHeatmap} where rows = pathway terms and columns = contrasts.
+#'
+#' @param ora_results data.frame from \code{or_test()}.
+#' @param value_type \code{"log2OR"} (log2 odds ratio), \code{"pvalue"}
+#'   (-log10 hypergeometric p), or \code{"size"} (hit count).
+#' @param alpha Significance cutoff — only terms significant in at least one
+#'   contrast are shown.
+#' @param use_adjp Use adjusted p-value for the significance filter?
+#' @return A \code{ComplexHeatmap} object.
+#' @seealso \code{\link{or_test}}
+#' @importFrom ComplexHeatmap Heatmap
+#' @importFrom circlize colorRamp2
+#' @importFrom grid gpar unit
+#' @importFrom tidyr pivot_wider
+#' @export
+plot_ora_heatmap <- function(ora_results, value_type = "log2OR",
+                             alpha = 0.05, use_adjp = TRUE) {
+  required_cols <- c("Term", "contrast", "log_odds", "p_hyper", "IN")
+  missing <- setdiff(required_cols, colnames(ora_results))
+  if (length(missing) > 0)
+    stop("ORA results missing columns: ", paste(missing, collapse = ", "))
+
+  has_direction <- "direction" %in% colnames(ora_results)
+  if (has_direction)
+    ora_results <- ora_results %>%
+      dplyr::mutate(Term = paste0(Term, " (", direction, ")"))
+
+  p_col <- if (use_adjp && "p.adjust_hyper" %in% colnames(ora_results))
+    "p.adjust_hyper" else "p_hyper"
+
+  sig_terms <- ora_results %>%
+    dplyr::filter(.data[[p_col]] < alpha) %>%
+    dplyr::pull(Term) %>%
+    unique()
+
+  if (length(sig_terms) == 0)
+    stop("No ORA terms with ", if (use_adjp) "adj. " else "", "p < ", alpha,
+         " in any contrast.\nTry raising the cutoff or choosing a different database.")
+
+  df_sub <- ora_results %>% dplyr::filter(Term %in% sig_terms)
+
+  if (value_type == "log2OR") {
+    fill_label <- "log2 OR"; fill_na <- 0
+    df_wide    <- df_sub %>%
+      dplyr::select(Term, contrast, val = log_odds) %>%
+      tidyr::pivot_wider(names_from = contrast, values_from = val,
+                         values_fill = fill_na)
+  } else if (value_type == "pvalue") {
+    fill_label <- "-log10(p)"; fill_na <- 0
+    df_wide    <- df_sub %>%
+      dplyr::mutate(val = -log10(pmax(p_hyper, 1e-300))) %>%
+      dplyr::select(Term, contrast, val) %>%
+      tidyr::pivot_wider(names_from = contrast, values_from = val,
+                         values_fill = fill_na)
+  } else {
+    fill_label <- "Hits (size)"; fill_na <- 0L
+    df_wide    <- df_sub %>%
+      dplyr::select(Term, contrast, val = IN) %>%
+      tidyr::pivot_wider(names_from = contrast, values_from = val,
+                         values_fill = fill_na)
+  }
+
+  mat           <- as.matrix(df_wide[, -1, drop = FALSE])
+  rownames(mat) <- df_wide$Term
+  rownames(mat) <- gsub(
+    "^HALLMARK_|^KEGG_|^REACTOME_|^WP_|^GOBP_|^GOMF_|^GOCC_",
+    "", rownames(mat))
+  rownames(mat) <- gsub("_", " ", rownames(mat))
+
+  if (value_type == "log2OR") {
+    max_val <- max(abs(mat), na.rm = TRUE)
+    if (!is.finite(max_val) || max_val == 0) max_val <- 1
+    col_fun <- circlize::colorRamp2(
+      c(-max_val, 0, max_val), c("#3498db", "white", "#e74c3c"))
+  } else {
+    max_val <- max(mat, na.rm = TRUE)
+    if (!is.finite(max_val) || max_val == 0) max_val <- 1
+    col_fun <- circlize::colorRamp2(c(0, max_val), c("white", "#e74c3c"))
+  }
+
+  ComplexHeatmap::Heatmap(
+    mat,
+    name              = fill_label,
+    col               = col_fun,
+    cluster_rows      = TRUE,
+    cluster_columns   = FALSE,
+    show_column_names = TRUE,
+    row_names_gp      = grid::gpar(fontsize = 8),
+    column_names_gp   = grid::gpar(fontsize = 9),
+    column_names_rot  = 45,
+    row_names_max_width = grid::unit(12, "cm"),
+    na_col            = "grey90",
+    rect_gp           = grid::gpar(col = "white", lwd = 0.5),
+    column_title      = paste0("ORA Heatmap – ", fill_label),
+    column_title_gp   = grid::gpar(fontsize = 11, fontface = "bold")
+  )
+}
+
+#' GSVA Pathway Heatmap
+#'
+#' Visualises a GSVA enrichment score matrix as a \code{ComplexHeatmap}.
+#' Pass the matrix returned by \code{GSVA::gsva()} directly.
+#' Rows = gene sets, columns = samples.
+#'
+#' @param gsva_mat Numeric matrix of GSVA enrichment scores, as returned by
+#'   \code{GSVA::gsva()}.  Rows are gene sets, columns are samples.
+#' @param condition Optional character vector of condition labels, one per
+#'   sample column.  Used for the top colour-bar annotation.  If \code{NULL},
+#'   no annotation is drawn.
+#' @param top_n Integer. Number of most-variable gene sets to display.
+#'   Default 25.
+#' @param order_by_condition Logical. Sort columns by condition label
+#'   (\code{TRUE}) or leave in the original order / cluster
+#'   (\code{FALSE})?  Default \code{TRUE}.
+#' @return A \code{ComplexHeatmap} object.
+#' @examples
+#' \dontrun{
+#' param    <- GSVA::gsvaParam(exprData = expr_mat, geneSets = gene_sets)
+#' gsva_mat <- GSVA::gsva(param, verbose = FALSE)
+#' plot_gsva_heatmap(gsva_mat, condition = colData(se)$condition)
+#' }
+#' @seealso \code{\link{plot_ora_heatmap}}
+#' @importFrom ComplexHeatmap Heatmap HeatmapAnnotation
+#' @importFrom circlize colorRamp2
+#' @importFrom RColorBrewer brewer.pal
+#' @importFrom grDevices colorRampPalette
+#' @importFrom grid gpar unit
+#' @export
+plot_gsva_heatmap <- function(gsva_mat, condition = NULL,
+                              top_n = 25L, order_by_condition = TRUE) {
+  if (!is.matrix(gsva_mat) || !is.numeric(gsva_mat))
+    stop("gsva_mat must be a numeric matrix (output of GSVA::gsva()).")
+
+  row_vars <- apply(gsva_mat, 1, stats::var, na.rm = TRUE)
+  top_idx  <- order(-row_vars)[seq_len(min(top_n, nrow(gsva_mat)))]
+  gsva_mat <- gsva_mat[top_idx, , drop = FALSE]
+
+  rownames(gsva_mat) <- gsub(
+    "^HALLMARK_|^KEGG_|^REACTOME_|^WP_|^GOBP_|^GOMF_|^GOCC_",
+    "", rownames(gsva_mat))
+  rownames(gsva_mat) <- gsub("_", " ", rownames(gsva_mat))
+
+  if (is.null(condition)) condition <- rep("Sample", ncol(gsva_mat))
+
+  if (order_by_condition) {
+    col_order <- order(condition)
+    gsva_mat  <- gsva_mat[, col_order, drop = FALSE]
+    condition <- condition[col_order]
+  }
+
+  cond_levels <- unique(condition)
+  n_cond      <- length(cond_levels)
+  palette     <- if (n_cond <= 8) {
+    RColorBrewer::brewer.pal(max(3L, n_cond), "Set2")[seq_len(n_cond)]
+  } else {
+    grDevices::colorRampPalette(RColorBrewer::brewer.pal(8, "Set2"))(n_cond)
+  }
+  cond_colors <- stats::setNames(palette, cond_levels)
+
+  top_anno <- ComplexHeatmap::HeatmapAnnotation(
+    Condition = condition,
+    col       = list(Condition = cond_colors),
+    annotation_name_side = "left",
+    annotation_name_gp   = grid::gpar(fontsize = 9)
+  )
+
+  max_val <- max(abs(gsva_mat), na.rm = TRUE)
+  if (max_val == 0 || is.na(max_val)) max_val <- 1
+  col_fun <- circlize::colorRamp2(
+    c(-max_val, 0, max_val), c("#3498db", "white", "#e74c3c"))
+
+  ComplexHeatmap::Heatmap(
+    gsva_mat,
+    name              = "GSVA score",
+    col               = col_fun,
+    top_annotation    = top_anno,
+    cluster_rows      = TRUE,
+    cluster_columns   = TRUE,
+    show_column_names = TRUE,
+    row_names_gp      = grid::gpar(fontsize = 8),
+    column_names_gp   = grid::gpar(fontsize = 9),
+    column_names_rot  = 45,
+    row_names_max_width = grid::unit(12, "cm"),
+    na_col            = "grey90",
+    rect_gp           = grid::gpar(col = "white", lwd = 0.5),
+    column_title_gp   = grid::gpar(fontsize = 11, fontface = "bold")
+  )
+}
