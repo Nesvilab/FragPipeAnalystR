@@ -247,164 +247,44 @@ or_test <- function(se, database="GO Biological Process", backend="enrichr", dir
       "GO Biological Process" = "GO_Biological_Process_2021",
       "GO Cellular Component" = "GO_Cellular_Component_2021",
       "GO Molecular Function" = "GO_Molecular_Function_2021",
-      "Hallmark" = "MSigDB_Hallmark_2020",
-      "KEGG" = "KEGG_2021_Human",
-      "Reactome" = "Reactome_2022"
+      "Hallmark"              = "MSigDB_Hallmark_2020",
+      "KEGG"                  = "KEGG_2021_Human",
+      "KEGG (Mouse)"          = "KEGG_2019_Mouse",
+      "WikiPathways"          = "WikiPathway_2023_Human",
+      "WikiPathways (Mouse)"  = "WikiPathways_2019_Mouse",
+      "Reactome"              = "Reactome_2022"
     )
-    reverse_database_mappings <- c(
-      "GO_Biological_Process_2021" = "GO Biological Process",
-      "GO_Cellular_Component_2021" = "GO Cellular Component",
-      "GO_Molecular_Function_2021" = "GO Molecular Function",
-      "MSigDB_Hallmark_2020" = "Hallmark",
-      "KEGG_2021_Human" = "KEGG",
-      "Reactome_2022" = "Reactome"
-    )
-    result <- test_ora_mod(se, databases = database_mappings[database], contrasts = T,
-                           direction = direction, log2_threshold = log2_threshold, alpha = alpha)
-    result$var <- reverse_database_mappings[result$var]
-    return(result)
-  } else if (backend == "clusterProfiler") {
-    row_data <- rowData(se, use.names = FALSE)
-    df <- row_data %>%
-      as.data.frame() %>%
-      # select(name, ends_with("_significant")) %>%
-      mutate(name = gsub("[.].*", "", name))
-
-    constrast_columns <- df %>% select(ends_with("_significant")) %>% colnames()
-    constrasts <- gsub("_significant", "", constrast_columns)
-    supported_dbs <- c("KEGG", "KEGG (Mouse)", "WikiPathways", "WikiPathways (Mouse)",
-                       "GO Biological Process", "GO Cellular Component",
-                       "GO Molecular Function", "Hallmark")
-    if (database %in% supported_dbs) {
-      organism_db <- if (endsWith(database, "(Mouse)")) "org.Mm.eg.db" else "org.Hs.eg.db"
-      if (database %in% c("KEGG", "KEGG (Mouse)", "WikiPathways", "WikiPathways (Mouse)")) {
-        if (!requireNamespace(organism_db, quietly = TRUE))
-          stop("Install '", organism_db, "' from Bioconductor.")
-      }
-      combined_df <- data.frame(ID=character(),
-                       Description=character(),
-                       GeneRatio=character(),
-                       BgRatio=character(),
-                       pvalue=character(),
-                       p.adjust=character(),
-                       qvalue=character(),
-                       geneID=character(),
-                       Count=character(),
-                       stringsAsFactors=FALSE)
-      for(contrast in constrast_columns) {
-        df[is.na(df[[contrast]]),contrast] <- F
-        significant <- df
-        significant <- significant[!is.na(significant[gsub("_significant", "_diff", contrast)]),]
-        if (direction == "UP"){
-          significant <- significant[(significant[gsub("_significant", "_diff", contrast)] > log2_threshold),]
-        } else if (direction == "DOWN") {
-          significant <- significant[significant[gsub("_significant", "_diff", contrast)] < -log2_threshold,]
-        }
-
-        if (metadata(se)$level == "protein" & metadata(se)$exp == "TMT") {
-          genes <- unique(significant$Gene)
-        } else if (metadata(se)$level == "protein" | metadata(se)$level == "gene") {
-          genes <- significant$name
-        } else if (metadata(se)$level %in% c("peptide", "site", "glycan")) {
-          genes <- unique(significant$Gene)
-        }
-
-        background <- df$name
-        significant <- significant[significant[gsub("_significant", "_p.adj", contrast)] < alpha,]
-        if (database %in% c("KEGG", "KEGG (Mouse)")) {
-          kegg_org <- if (endsWith(database, "(Mouse)")) "mmu" else "hsa"
-          mappings <- bitr(genes, fromType="SYMBOL", toType=c("ENTREZID"), OrgDb=organism_db)
-          result <- enrichKEGG(gene = mappings$ENTREZID,
-                               keyType = "ncbi-geneid",
-                               organism = kegg_org,
-                               pvalueCutoff = 1,
-                               qvalueCutoff = 1)
-          bg_mappings <- bitr(background, fromType="SYMBOL", toType=c("ENTREZID"), OrgDb=organism_db)
-          bg_result <- enrichKEGG(gene = bg_mappings$ENTREZID,
-                                 keyType = "ncbi-geneid",
-                                 organism = kegg_org,
-                                 pvalueCutoff = 1,
-                                 qvalueCutoff = 1)
-          temp <- as.data.frame(setReadable(result, OrgDb = organism_db, keyType = "ENTREZID"))
-          bg_temp <- as.data.frame(bg_result)
-          bg_temp <- bg_temp %>%
-            mutate(bg_IN = Count,
-                   bg_OUT = length(background) - Count) %>%
-            select(ID, bg_IN, bg_OUT)
-          temp <- temp %>% left_join(bg_temp, by = "ID")
-        } else if (database %in% c("WikiPathways", "WikiPathways (Mouse)")) {
-          wp_org <- if (endsWith(database, "(Mouse)")) "Mus musculus" else "Homo sapiens"
-          mappings <- bitr(genes, fromType="SYMBOL", toType=c("ENTREZID"), OrgDb=organism_db)
-          result <- enrichWP(gene = mappings$ENTREZID,
-                             organism = wp_org,
-                             pvalueCutoff = 1,
-                             qvalueCutoff = 1)
-          bg_mappings <- bitr(background, fromType="SYMBOL", toType=c("ENTREZID"), OrgDb=organism_db)
-          bg_result <- enrichWP(gene = bg_mappings$ENTREZID,
-                                organism = wp_org,
-                                pvalueCutoff = 1,
-                                qvalueCutoff = 1)
-          temp <- as.data.frame(setReadable(result, OrgDb = organism_db, keyType = "ENTREZID"))
-          bg_temp <- as.data.frame(bg_result)
-          bg_temp <- bg_temp %>%
-            mutate(bg_IN = Count,
-                   bg_OUT = length(background) - Count) %>%
-            select(ID, bg_IN, bg_OUT)
-          temp <- temp %>% left_join(bg_temp, by = "ID")
-        } else {
-          if (database == "Hallmark") {
-            hallmark <- msigdbr::msigdbr(species = "Homo sapiens", category = "H") %>%
-              dplyr::select(gs_name, gene_symbol)
-            result <- enricher(genes, TERM2GENE = hallmark, pvalueCutoff = 1, qvalueCutoff = 1)
-            bg_result <- enricher(background, TERM2GENE = hallmark, pvalueCutoff = 1, qvalueCutoff = 1)
-          } else{
-            database_mappings <- c(
-              "GO Biological Process" = "BP",
-              "GO Cellular Component" = "CC",
-              "GO Molecular Function" = "MF"
-            )
-            result <- enrichGO(gene = genes,
-                               OrgDb = org.Hs.eg.db,
-                               ont = database_mappings[database],
-                               keyType = "SYMBOL",
-                               pAdjustMethod = "BH",
-                               pvalueCutoff  = 1,
-                               qvalueCutoff  = 1)
-            bg_result <- enrichGO(gene = background,
-                                  OrgDb = org.Hs.eg.db,
-                                  ont = database_mappings[database],
-                                  keyType = "SYMBOL",
-                                  pAdjustMethod = "BH",
-                                  pvalueCutoff  = 1,
-                                  qvalueCutoff  = 1)
-          }
-          temp <- as.data.frame(result)
-          bg_temp <- as.data.frame(bg_result)
-          bg_temp <- bg_temp %>%
-            mutate(bg_IN = Count,
-                   bg_OUT = length(background) - bg_IN) %>%
-            select(ID, bg_IN, bg_OUT)
-          temp <- temp %>% left_join(bg_temp, by = "ID")
-        }
-        temp$contrast <- gsub("_significant", "", contrast)
-        temp$OUT <- dim(significant)[1] - temp$Count
-        combined_df <- rbind(combined_df, temp)
-      }
-      lookup <- c("Term"="Description", "P.value"="pvalue", "Adjusted.P.value"="p.adjust", "IN"="Count")
-      combined_df <- rename(combined_df, all_of(lookup))
-      combined_df$var <- database
-      combined_df$Overlap <- paste0(combined_df$IN, "/", as.numeric(gsub("/.*", "", combined_df$BgRatio)))
-      # inspired from enrichr https://github.com/MaayanLab/enrichr_issues/issues/3#issuecomment-780078054
-      combined_df$Odds.Ratio <- (combined_df$IN * (20000 - as.numeric(gsub("/.*", "", combined_df$BgRatio)))) / (combined_df$OUT * as.numeric(gsub("/.*", "", combined_df$BgRatio)))
-      combined_df$log_odds <- log2((combined_df$IN * combined_df$bg_OUT) / (combined_df$OUT * combined_df$bg_IN))
-      combined_df$p_hyper = phyper(q=(combined_df$IN-1), m = combined_df$bg_IN, n = combined_df$bg_OUT, k = (combined_df$IN+combined_df$OUT),
-                                 lower.tail = F)
-      combined_df$p.adjust_hyper = p.adjust(combined_df$p_hyper, method = "BH")
-      return(combined_df)
-    } else {
-      cat(paste0("The database specified: ", database, " is not supported."))
+    if (!database %in% names(database_mappings)) {
+      cat(paste0("The database specified: ", database, " is not supported.\n"))
       return(NULL)
     }
+    reverse_mappings <- setNames(names(database_mappings), unname(database_mappings))
+    result <- test_ora_mod(se, databases = database_mappings[database], backend = "enrichr",
+                           contrasts = TRUE, direction = direction,
+                           log2_threshold = log2_threshold, alpha = alpha)
+    result$var <- reverse_mappings[result$var]
+    return(result)
+  } else if (backend == "clusterProfiler") {
+    database_mappings <- c(
+      "GO Biological Process" = "BP",
+      "GO Cellular Component" = "CC",
+      "GO Molecular Function" = "MF",
+      "Hallmark"              = "Hallmark",
+      "KEGG"                  = "KEGG",
+      "KEGG (Mouse)"          = "KEGG (Mouse)",
+      "WikiPathways"          = "WikiPathways",
+      "WikiPathways (Mouse)"  = "WikiPathways (Mouse)"
+    )
+    if (!database %in% names(database_mappings)) {
+      cat(paste0("The database specified: ", database, " is not supported by the clusterProfiler backend.\n"))
+      return(NULL)
+    }
+    reverse_mappings <- setNames(names(database_mappings), unname(database_mappings))
+    result <- test_ora_mod(se, databases = database_mappings[database], backend = "clusterProfiler",
+                           contrasts = TRUE, direction = direction,
+                           log2_threshold = log2_threshold, alpha = alpha)
+    result$var <- reverse_mappings[result$var]
+    return(result)
   } else {
     cat("Currently, we only support enrichr and clusterProfiler backend.\n")
   }
@@ -654,8 +534,9 @@ plot_or <- function(or_result, number = 10, alpha = 0.05,
 }
 
 test_ora_mod <- function(dep,
-                         databases,
-                         contrasts = T, direction="UP", log2_threshold=0.7, alpha=0.05) {
+                         databases, backend = "clusterProfiler",
+                         contrasts = TRUE, direction = "UP", log2_threshold = 0.7,
+                         alpha = 0.05, adjust_alpha = TRUE) {
   # Show error if inputs are not the required classes
   assertthat::assert_that(inherits(dep, "SummarizedExperiment"),
                           is.character(databases),
@@ -687,50 +568,157 @@ test_ora_mod <- function(dep,
   } else if (metadata(dep)$exp == "TMT" & metadata(dep)$level == "gene") {
     background <- unique(row_data$ID)
   } else if (metadata(dep)$level == "protein") {
-    background <- unique(gsub("[.].*", "", row_data$name))
-  } else if (metadata(dep)$level %in% c("peptide", "site", "glycan")) {
+      background <- unique(gsub("[.].*", "", row_data$name))
+  } else if (metadata(dep)$exp == "LFQ" & metadata(dep)$level == "peptide") {
     background <- unique(row_data$Gene)
+  } else if (metadata(dep)$exp == "TMT" & metadata(dep)$level %in% c("peptide", "site")) {
+    background <- unique(row_data$Gene)
+  } else if (metadata(dep)$exp == "DIA" & metadata(dep)$level == "site") {
+    background <- unique(row_data$Gene)
+  } else if (metadata(dep)$exp == "DIA" & metadata(dep)$level == "peptide") {
+    if ("Gene" %in% colnames(row_data)) {
+      background <- unique(row_data$Gene)
+    } else {
+      background <- unique(row_data$Genes)
+    }
   }
 
-  background_enriched <- enrichr_mod(background, databases)
-  df_background <- NULL
-  for(database in databases) {
-    temp <- background_enriched[database][[1]] %>%
-      mutate(var = database)
-    df_background <- rbind(df_background, temp)
-  }
-  df_background$contrast <- "background"
-  df_background$n <- length(background)
+  if (backend == "clusterProfiler") {
 
-  OUT <- df_background %>%
-    mutate(bg_IN = as.numeric(gsub("/.*", "", Overlap)),
-           bg_OUT = n - bg_IN) %>%
-    select(Term, bg_IN, bg_OUT)
+    if (contrasts) {
+      df <- row_data %>%
+        as.data.frame() %>%
+        # select(name, ends_with("_significant")) %>%
+        mutate(name = gsub("[.].*", "", name))
 
-  if(contrasts) {
-    # Get gene symbols
-    df <- row_data %>%
-      as.data.frame() %>%
-      # select(name, ends_with("_significant")) %>%
-      mutate(name = gsub("[.].*", "", name))
+      constrast_columns <- df %>% select(ends_with("_significant")) %>% colnames()
+      constrasts <- gsub("_significant", "", constrast_columns)
 
-    constrast_columns <- df %>% select(ends_with("_significant")) %>% colnames()
-    constrasts <- gsub("_significant", "", constrast_columns)
+      df_enrich <- data.frame(ID = character(),
+                              Description = character(),
+                              GeneRatio = character(),
+                              BgRatio = character(),
+                              pvalue = character(),
+                              p.adjust = character(),
+                              qvalue = character(),
+                              geneID = character(),
+                              Count = character(),
+                              stringsAsFactors = FALSE)
 
-    # Run enrichR for every contrast
-    df_enrich <- NULL
-    for(contrast in constrast_columns) {
-      message(gsub("_significant", "", contrast))
-      # contrast column might have NA
-      df[is.na(df[[contrast]]),contrast] <- F
-      significant <- df
-      significant <- significant[!is.na(significant[gsub("_significant", "_diff", contrast)]),]
-      if (direction == "UP"){
-        significant <- significant[(significant[gsub("_significant", "_diff", contrast)] > log2_threshold),]
-      } else if (direction == "DOWN") {
-        significant <- significant[significant[gsub("_significant", "_diff", contrast)] < -log2_threshold,]
+      # --- Pre-compute background ID mappings & db-specific setup ONCE ---
+      organism_db_map <- ifelse(endsWith(databases, "(Mouse)"), "org.Mm.eg.db", "org.Hs.eg.db")
+      bg_entrez    <- NULL
+      hallmark     <- NULL
+      organism_map <- NULL
+      if (startsWith(databases, "KEGG") || startsWith(databases, "WikiPathways")) {
+        bg_entrez <- bitr(background, fromType = "SYMBOL",
+                          toType = c("ENTREZID"), OrgDb = organism_db_map)$ENTREZID
       }
-      significant <- significant[significant[gsub("_significant", "_p.adj", contrast)] < alpha,]
+      if (startsWith(databases, "KEGG")) {
+        organism_map <- ifelse(endsWith(databases, "(Mouse)"), "mmu", "hsa")
+      } else if (startsWith(databases, "WikiPathways")) {
+        organism_map <- ifelse(endsWith(databases, "(Mouse)"), "Mus musculus", "Homo sapiens")
+      } else if (databases == "Hallmark") {
+        hallmark <- msigdbr::msigdbr(species = "Homo sapiens", collection = "H") %>%
+          dplyr::select(gs_name, gene_symbol)
+      } else if (!databases %in% c("MF", "BP", "CC")) {
+        stop("Not a valid database, please choose from 'KEGG', 'WikiPathways', 'Hallmark', 'MF', 'BP', 'CC'",
+             call. = FALSE)
+      }
+
+      for(contrast in constrast_columns) {
+        df[is.na(df[[contrast]]), contrast] <- FALSE
+        significant <- df
+        if (direction == "UP") {
+          significant <- significant[(significant[gsub("_significant", "_diff", contrast)] > log2_threshold), ]
+        } else if (direction == "DOWN") {
+          significant <- significant[significant[gsub("_significant", "_diff", contrast)] < -log2_threshold, ]
+        }
+        if (adjust_alpha) {
+          significant <- significant[significant[gsub("_significant", "_p.adj", contrast)] < alpha, ]
+        } else {
+          significant <- significant[significant[gsub("_significant", "_p.val", contrast)] < alpha, ]
+        }
+
+        if (metadata(dep)$exp == "TMT" & metadata(dep)$level == "protein") {
+          genes <- unique(significant$Gene)
+        } else if (metadata(dep)$exp == "TMT" & metadata(dep)$level == "gene") {
+          genes <- unique(significant$ID)
+        } else if (metadata(dep)$level == "protein") {
+          genes <- significant$name
+        } else if (metadata(dep)$exp == "LFQ" & metadata(dep)$level == "peptide") {
+          genes <- unique(significant$Gene)
+        } else if (metadata(dep)$exp == "TMT" & metadata(dep)$level %in% c("peptide", "site")) {
+          genes <- unique(significant$Gene)
+        } else if (metadata(dep)$exp == "DIA" & metadata(dep)$level == "peptide") {
+          if ("Gene" %in% colnames(row_data)) {
+            genes <- unique(significant$Gene)
+          } else {
+            genes <- unique(significant$Genes)
+          }
+        } else if (metadata(dep)$exp == "DIA" & metadata(dep)$level == "site") {
+          genes <- unique(significant$Gene)
+        }
+
+        if (startsWith(databases, "KEGG")) {
+          mappings <- bitr(genes, fromType = "SYMBOL",
+                           toType = c("ENTREZID"), OrgDb = organism_db_map)
+          result <- enrichKEGG(gene = mappings$ENTREZID,
+                               universe = bg_entrez,
+                               keyType = "ncbi-geneid",
+                               organism = organism_map,
+                               pvalueCutoff = 1,
+                               qvalueCutoff = 1)
+          result <- setReadable(result, OrgDb = organism_db_map, keyType = "ENTREZID")
+        } else if (startsWith(databases, "WikiPathways")) {
+          mappings <- bitr(genes, fromType = "SYMBOL",
+                           toType = c("ENTREZID"), OrgDb = organism_db_map)
+          result <- enrichWP(gene = mappings$ENTREZID,
+                             universe = bg_entrez,
+                             organism = organism_map,
+                             pvalueCutoff = 1,
+                             qvalueCutoff = 1)
+          result <- setReadable(result, OrgDb = organism_db_map, keyType = "ENTREZID")
+        } else if (databases == "Hallmark") {
+          result <- enricher(genes, universe = background,
+                             TERM2GENE = hallmark, pvalueCutoff = 1, qvalueCutoff = 1)
+        } else if (databases %in% c("MF", "BP", "CC")) {
+          result <- enrichGO(gene = genes,
+                             universe = background,
+                             OrgDb = organism_db_map,
+                             ont = databases,
+                             keyType = "SYMBOL",
+                             pAdjustMethod = "BH",
+                             pvalueCutoff  = 1,
+                             qvalueCutoff  = 1)
+        }
+        temp <- as.data.frame(result)
+
+        temp$contrast <- gsub("_significant", "", contrast)
+        temp$OUT <- length(genes) - temp$Count
+        df_enrich <- rbind(df_enrich, temp)
+      }
+      lookup <- c("Term" = "Description", "P.value" = "pvalue", "Adjusted.P.value" = "p.adjust", "IN" = "Count")
+      df_enrich <- dplyr::rename(df_enrich, all_of(lookup))
+      df_enrich$var <- databases
+      df_enrich$Overlap <- paste0(df_enrich$IN, "/", as.numeric(gsub("/.*", "", df_enrich$BgRatio)))
+      # Compute log odds from GeneRatio and BgRatio
+      bg_IN  <- as.numeric(gsub("/.*", "", df_enrich$BgRatio))
+      bg_OUT <- as.numeric(gsub(".*/", "", df_enrich$BgRatio)) - bg_IN
+      df_enrich$Odds.Ratio <- (df_enrich$IN * bg_OUT) / (df_enrich$OUT * bg_IN)
+      df_enrich$log_odds   <- log2(df_enrich$Odds.Ratio)
+      # Use clusterProfiler's p-values directly (already corrected for universe = background)
+      df_enrich$p_hyper        <- df_enrich$P.value
+      df_enrich$p.adjust_hyper <- df_enrich$Adjusted.P.value
+
+      return(df_enrich)
+    } else {
+      # contrasts == FALSE: run enrichment on all significant genes at once
+      significant <- row_data %>%
+        as.data.frame() %>%
+        select(name, significant) %>%
+        filter(significant) %>%
+        mutate(name = gsub("[.].*", "", name))
 
       if (metadata(dep)$exp == "TMT" & metadata(dep)$level == "protein") {
         genes <- unique(significant$Gene)
@@ -738,139 +726,312 @@ test_ora_mod <- function(dep,
         genes <- unique(significant$ID)
       } else if (metadata(dep)$level == "protein") {
         genes <- significant$name
-      } else if (metadata(dep)$level %in% c("peptide", "site", "glycan")) {
+      } else if (metadata(dep)$level == "site" |
+                 (metadata(dep)$exp == "TMT" & metadata(dep)$level == "peptide")) {
         genes <- unique(significant$Gene)
+      } else { # DIA-peptide
+        if ("Gene" %in% colnames(row_data)) {
+          genes <- unique(significant$Gene)
+        } else {
+          genes <- unique(significant$Genes)
+        }
       }
 
-      message(paste0(length(genes), " genes are submitted"))
-      if (length(genes) != 0){
-        enriched <- enrichr_mod(genes, databases)
-        # Tidy output
-        contrast_enrich <- NULL
-        for(database in databases) {
-          temp <- enriched[database][[1]] %>%
-            mutate(var = database)
-          contrast_enrich <- rbind(contrast_enrich, temp)
-        }
-        if (nrow(contrast_enrich) != 0) { # has enrichment
-          contrast_enrich$contrast <- contrast
-          contrast_enrich$n <- length(genes)
-          # Background correction
-          cat("Background correction... ")
-          contrast_enrich <- contrast_enrich %>%
-            mutate(IN = as.numeric(gsub("/.*", "", Overlap)),
-                   OUT = n - IN) %>%
-            select(-n) %>%
-            left_join(OUT, by = "Term") %>%
-            mutate(log_odds = log2((IN * bg_OUT) / (OUT * bg_IN)))
-          cat("Done.")
-        }
-        df_enrich <- rbind(df_enrich, contrast_enrich) %>%
-          mutate(contrast = gsub("_significant", "", contrast))
+      organism_db_map <- ifelse(endsWith(databases, "(Mouse)"), "org.Mm.eg.db", "org.Hs.eg.db")
+      bg_entrez    <- NULL
+      hallmark     <- NULL
+      organism_map <- NULL
+      if (startsWith(databases, "KEGG") || startsWith(databases, "WikiPathways")) {
+        bg_entrez <- bitr(background, fromType = "SYMBOL",
+                          toType = c("ENTREZID"), OrgDb = organism_db_map)$ENTREZID
+      }
+
+      if (startsWith(databases, "KEGG")) {
+        organism_map <- ifelse(endsWith(databases, "(Mouse)"), "mmu", "hsa")
+        mappings <- bitr(genes, fromType = "SYMBOL",
+                         toType = c("ENTREZID"), OrgDb = organism_db_map)
+        result <- enrichKEGG(gene = mappings$ENTREZID,
+                             universe = bg_entrez,
+                             keyType = "ncbi-geneid",
+                             organism = organism_map,
+                             pvalueCutoff = 1,
+                             qvalueCutoff = 1)
+        result <- setReadable(result, OrgDb = organism_db_map, keyType = "ENTREZID")
+      } else if (startsWith(databases, "WikiPathways")) {
+        organism_map <- ifelse(endsWith(databases, "(Mouse)"), "Mus musculus", "Homo sapiens")
+        mappings <- bitr(genes, fromType = "SYMBOL",
+                         toType = c("ENTREZID"), OrgDb = organism_db_map)
+        result <- enrichWP(gene = mappings$ENTREZID,
+                           universe = bg_entrez,
+                           organism = organism_map,
+                           pvalueCutoff = 1,
+                           qvalueCutoff = 1)
+        result <- setReadable(result, OrgDb = organism_db_map, keyType = "ENTREZID")
+      } else if (databases == "Hallmark") {
+        hallmark <- msigdbr::msigdbr(species = "Homo sapiens", collection = "H") %>%
+          dplyr::select(gs_name, gene_symbol)
+        result <- enricher(genes, universe = background,
+                           TERM2GENE = hallmark, pvalueCutoff = 1, qvalueCutoff = 1)
+      } else if (databases %in% c("MF", "BP", "CC")) {
+        result <- enrichGO(gene = genes,
+                           universe = background,
+                           OrgDb = organism_db_map,
+                           ont = databases,
+                           keyType = "SYMBOL",
+                           pAdjustMethod = "BH",
+                           pvalueCutoff  = 1,
+                           qvalueCutoff  = 1)
       } else {
-        cat("No significant genes for enrichment analysis")
+        stop("Not a valid database, please choose from 'KEGG', 'WikiPathways', 'Hallmark', 'MF', 'BP', 'CC'",
+             call. = FALSE)
       }
-    }
-  } else {
-    # Get gene symbols
-    significant <- row_data %>%
-      as.data.frame() %>%
-      select(name, significant) %>%
-      filter(significant) %>%
-      mutate(name = gsub("[.].*", "", name))
 
-    # Run enrichR
+      df_enrich <- as.data.frame(result)
+      df_enrich$contrast <- "significant"
+      df_enrich$OUT <- length(genes) - df_enrich$Count
 
-    if (metadata(dep)$exp == "TMT" & metadata(dep)$level == "protein") {
-      genes <- unique(significant$Gene)
-    } else if (metadata(dep)$exp == "TMT" & metadata(dep)$level == "gene") {
-      genes <- unique(significant$ID)
-    } else if (metadata(dep)$level == "protein") {
-      genes <- significant$name
-    } else if (metadata$level %in% c("peptide", "site", "glycan")) {
-      genes <- unique(significant$Gene)
+      lookup <- c("Term" = "Description", "P.value" = "pvalue", "Adjusted.P.value" = "p.adjust", "IN" = "Count")
+      df_enrich <- dplyr::rename(df_enrich, all_of(lookup))
+      df_enrich$var <- databases
+      df_enrich$Overlap <- paste0(df_enrich$IN, "/", as.numeric(gsub("/.*", "", df_enrich$BgRatio)))
+      bg_IN  <- as.numeric(gsub("/.*", "", df_enrich$BgRatio))
+      bg_OUT <- as.numeric(gsub(".*/", "", df_enrich$BgRatio)) - bg_IN
+      df_enrich$Odds.Ratio <- (df_enrich$IN * bg_OUT) / (df_enrich$OUT * bg_IN)
+      df_enrich$log_odds   <- log2(df_enrich$Odds.Ratio)
+      df_enrich$p_hyper        <- df_enrich$P.value
+      df_enrich$p.adjust_hyper <- df_enrich$Adjusted.P.value
+
+      return(df_enrich)
     }
 
-    enriched <- enrichr_mod(genes, databases)
 
-    # Tidy output
-    df_enrich <- NULL
+  } else if (backend == "enrichr") {
+    background_enriched <- enrichr_mod(background, databases)
+    df_background <- NULL
     for(database in databases) {
-      temp <- enriched[database][[1]] %>%
+      temp <- background_enriched[database][[1]] %>%
         mutate(var = database)
-      df_enrich <- rbind(df_enrich, temp)
+      df_background <- rbind(df_background, temp)
     }
-    df_enrich$contrast <- "significant"
-    df_enrich$n <- length(genes)
+    df_background$contrast <- "background"
+    df_background$n <- length(background)
 
-    # Background correction
-    cat("Background correction... ")
-    df_enrich <- df_enrich %>%
-      mutate(IN = as.numeric(gsub("/.*", "", Overlap)),
-             OUT = n - IN) %>%
-      select(-n) %>%
-      left_join(OUT, by = "Term") %>%
-      mutate(log_odds = log2((IN * bg_OUT) / (OUT * bg_IN)))
-    cat("Done.")
+    OUT <- df_background %>%
+      mutate(bg_IN = as.numeric(gsub("/.*", "", Overlap)),
+             bg_OUT = n - bg_IN) %>%
+      select(Term, bg_IN, bg_OUT)
+
+    if(contrasts) {
+      # Get gene symbols
+      df <- row_data %>%
+        as.data.frame() %>%
+        # select(name, ends_with("_significant")) %>%
+        mutate(name = gsub("[.].*", "", name))
+
+      constrast_columns <- df %>% select(ends_with("_significant")) %>% colnames()
+      constrasts <- gsub("_significant", "", constrast_columns)
+
+      # Run enrichR for every contrast
+      df_enrich <- NULL
+      for(contrast in constrast_columns) {
+        message(gsub("_significant", "", contrast))
+        # contrast column might have NA
+        df[is.na(df[[contrast]]), contrast] <- FALSE
+        significant <- df
+        if (direction == "UP") {
+          significant <- significant[(significant[gsub("_significant", "_diff", contrast)] > log2_threshold), ]
+        } else if (direction == "DOWN") {
+          significant <- significant[significant[gsub("_significant", "_diff", contrast)] < -log2_threshold, ]
+        }
+        if (adjust_alpha) {
+          significant <- significant[significant[gsub("_significant", "_p.adj", contrast)] < alpha, ]
+        } else {
+          significant <- significant[significant[gsub("_significant", "_p.val", contrast)] < alpha, ]
+        }
+
+        if (metadata(dep)$exp == "TMT" & metadata(dep)$level == "protein") {
+          genes <- unique(significant$Gene)
+        } else if (metadata(dep)$exp == "TMT" & metadata(dep)$level == "gene") {
+          genes <- unique(significant$ID)
+        } else if (metadata(dep)$level == "protein") {
+          genes <- significant$name
+        } else if (metadata(dep)$exp == "LFQ" & metadata(dep)$level == "peptide") {
+          genes <- unique(significant$Gene)
+        } else if (metadata(dep)$exp == "TMT" & metadata(dep)$level %in% c("peptide", "site")) {
+          genes <- unique(significant$Gene)
+        } else if (metadata(dep)$exp == "DIA" & metadata(dep)$level == "peptide") {
+          if ("Gene" %in% colnames(row_data)) {
+            genes <- unique(significant$Gene)
+          } else {
+            genes <- unique(significant$Genes)
+          }
+        } else if (metadata(dep)$exp == "DIA" & metadata(dep)$level == "site") {
+          genes <- unique(significant$Gene)
+        }
+
+        message(paste0(length(genes), " genes are submitted"))
+        if (length(genes) != 0) {
+          enriched <- enrichr_mod(genes, databases)
+          # Tidy output
+          contrast_enrich <- NULL
+          for(database in databases) {
+            temp <- enriched[database][[1]] %>%
+              mutate(var = database)
+            contrast_enrich <- rbind(contrast_enrich, temp)
+          }
+          if (nrow(contrast_enrich) != 0) { # has enrichment
+            contrast_enrich$contrast <- contrast
+            contrast_enrich$n <- length(genes)
+            # Background correction
+            cat("Background correction... ")
+            contrast_enrich <- contrast_enrich %>%
+              mutate(IN = as.numeric(gsub("/.*", "", Overlap)),
+                     OUT = n - IN) %>%
+              select(-n) %>%
+              left_join(OUT, by = "Term") %>%
+              mutate(log_odds = log2((IN * bg_OUT) / (OUT * bg_IN)))
+            cat("Done.")
+          }
+          df_enrich <- rbind(df_enrich, contrast_enrich) %>%
+            mutate(contrast = gsub("_significant", "", contrast))
+        } else {
+          cat("No significant genes for enrichment analysis")
+        }
+      }
+    } else {
+      # Get gene symbols
+      significant <- row_data %>%
+        as.data.frame() %>%
+        select(name, significant) %>%
+        filter(significant) %>%
+        mutate(name = gsub("[.].*", "", name))
+
+      # Run enrichR
+      if (metadata(dep)$exp == "TMT" & metadata(dep)$level == "protein") {
+        genes <- unique(significant$Gene)
+      } else if (metadata(dep)$exp == "TMT" & metadata(dep)$level == "gene") {
+        genes <- unique(significant$ID)
+      } else if (metadata(dep)$level == "protein") {
+        genes <- significant$name
+      } else if (metadata(dep)$level == "site" |
+                 (metadata(dep)$exp == "TMT" & metadata(dep)$level == "peptide")) {
+        genes <- unique(significant$Gene)
+      } else { # DIA-peptide
+        if ("Gene" %in% colnames(row_data)) {
+          genes <- unique(significant$Gene)
+        } else {
+          genes <- unique(significant$Genes)
+        }
+      }
+
+      enriched <- enrichr_mod(genes, databases)
+
+      # Tidy output
+      df_enrich <- NULL
+      for(database in databases) {
+        temp <- enriched[database][[1]] %>%
+          mutate(var = database)
+        df_enrich <- rbind(df_enrich, temp)
+      }
+      df_enrich$contrast <- "significant"
+      df_enrich$n <- length(genes)
+
+      # Background correction
+      cat("Background correction... ")
+      df_enrich <- df_enrich %>%
+        mutate(IN = as.numeric(gsub("/.*", "", Overlap)),
+               OUT = n - IN) %>%
+        select(-n) %>%
+        left_join(OUT, by = "Term") %>%
+        mutate(log_odds = log2((IN * bg_OUT) / (OUT * bg_IN)))
+      cat("Done.")
+    }
+
+    if (nrow(df_enrich) != 0) {
+      df_enrich$p_hyper = phyper(q=(df_enrich$IN-1), m = df_enrich$bg_IN, n = df_enrich$bg_OUT, k = (df_enrich$IN+df_enrich$OUT),
+                                 lower.tail = F )
+      df_enrich$p.adjust_hyper = p.adjust(df_enrich$p_hyper, method = "BH")
+    }
+    return(df_enrich)
+
+  } else {
+    stop("Not a valid backend, please choose 'enrichr' or 'clusterProfiler'",
+         call. = FALSE)
   }
-  df_enrich$p_hyper = phyper(q=(df_enrich$IN-1), m = df_enrich$bg_IN, n = df_enrich$bg_OUT, k = (df_enrich$IN+df_enrich$OUT),
-                             lower.tail = F )
-  df_enrich$p.adjust_hyper = p.adjust(df_enrich$p_hyper, method = "BH")
-  return(df_enrich)
 }
 
 enrichr_mod <- function(genes, databases = NULL) {
-  # check gene type
-  if (length(genes) != 0){
+  if (length(genes) != 0) {
     if (all(startsWith(genes, "ENSG"))) {
-      genes <- gsub("\\..*", "", genes)
-      genes_map <- ensembldb::select(EnsDb.Hsapiens.v86::EnsDb.Hsapiens.v86,
-                                     keys= genes, keytype = "GENEID", columns = c("SYMBOL","GENEID"))
+      genes_map <- ensembldb::select(EnsDb.Hsapiens.v86,
+                                     keys = genes, keytype = "GENEID", columns = c("SYMBOL", "GENEID"))
       genes <- genes_map$SYMBOL
     }
     httr::set_config(httr::config(ssl_verifypeer = 0L))
     cat("Uploading data to Enrichr... ")
-    if (is.vector(genes) & ! all(genes == "") & length(genes) != 0) {
-      temp <- httr::POST(url="http://maayanlab.cloud/Enrichr/enrich",
-                   body=list(list=paste(genes, collapse="\n")))
+    if (is.vector(genes) & !all(genes == "") & length(genes) != 0) {
+      gene_str <- paste(genes, collapse = "\n")
     } else if (is.data.frame(genes)) {
-      temp <- httr::POST(url="http://maayanlab.cloud/Enrichr/enrich",
-                   body=list(list=paste(paste(genes[,1], genes[,2], sep=","),
-                                        collapse="\n")))
+      gene_str <- paste(paste(genes[,1], genes[,2], sep = ","), collapse = "\n")
     } else {
       warning("genes must be a non-empty vector of gene names or a dataframe with genes and score.")
+      return(NULL)
     }
-    GET(url="http://maayanlab.cloud/Enrichr/share")
+    temp <- httr::POST(url = "https://maayanlab.cloud/Enrichr/addList",
+                      body = list(list = gene_str, description = ""),
+                      encode = "multipart", httr::timeout(30))
+    Sys.sleep(1)
+    user_list_id <- httr::content(temp, as = "parsed", type = "application/json")$userListId
     cat("Done.\n")
     dbs <- as.list(databases)
     dfSAF <- options()$stringsAsFactors
     options(stringsAsFactors = FALSE)
     result <- lapply(dbs, function(x) {
-      cat("  Querying ", x, "... ", sep="")
-      r <- httr::GET(url="http://maayanlab.cloud/Enrichr/export",
-               query=list(file="API", backgroundType=x))
-      r <- gsub("&#39;", "'", intToUtf8(r$content))
-      tc <- textConnection(r)
-      r <- read.table(tc, sep = "\t", header = TRUE, quote = "", comment.char="")
-      close(tc)
+      cat("  Querying ", x, "... ", sep = "")
+      r <- httr::GET(url = "https://maayanlab.cloud/Enrichr/enrich",
+                     query = list(userListId = user_list_id, backgroundType = x), httr::timeout(30))
+      data <- httr::content(r, as = "parsed", type = "application/json")[[x]]
+      if (is.null(data) || length(data) == 0) {
+        cat("Done.\n")
+        return(data.frame(Term = character(), Overlap = character(),
+                          P.value = double(), Adjusted.P.value = double(),
+                          Old.P.value = double(), Old.Adjusted.P.value = double(),
+                          Odds.Ratio = double(), Combined.Score = double(),
+                          Genes = character()))
+      }
+      # JSON entry: [rank, term, p_value, Odds ratio, combined_score, [genes], adj_p_value, old_p_value, old_adj_p_value]
+      Sys.sleep(1)
+      df <- do.call(rbind, lapply(data, function(entry) {
+        data.frame(
+          Term                 = entry[[2]],
+          Overlap              = as.character(length(entry[[6]])),
+          P.value              = entry[[3]],
+          Adjusted.P.value     = entry[[7]],
+          Old.P.value          = if (length(entry) >= 8) entry[[8]] else NA_real_,
+          Old.Adjusted.P.value = if (length(entry) >= 9) entry[[9]] else NA_real_,
+          Odds.Ratio           = entry[[4]],
+          Combined.Score       = entry[[5]],
+          Genes                = paste(entry[[6]], collapse = ";"),
+          stringsAsFactors     = FALSE
+        )
+      }))
       cat("Done.\n")
-      return(r)
+      return(df)
     })
     options(stringsAsFactors = dfSAF)
     cat("Parsing results... ")
     names(result) <- dbs
     cat("Done.\n")
-  }
-  else { # no genes provided
-    result <- data.frame(Term=character(),
-                         Overlap=character(),
-                         P.value=double(),
-                         Adjusted.P.value=double(),
-                         Old.P.value=double(),
-                         Old.Adjusted.P.value=double(),
-                         Odds.Ratio=double(),
-                         Combined.Score=double(),
-                         Genes=character())
+  } else {
+    result <- data.frame(Term = character(),
+                         Overlap = character(),
+                         P.value = double(),
+                         Adjusted.P.value = double(),
+                         Old.P.value = double(),
+                         Old.Adjusted.P.value = double(),
+                         Odds.Ratio = double(),
+                         Combined.Score = double(),
+                         Genes = character())
   }
   return(result)
 }
