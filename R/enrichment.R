@@ -242,6 +242,17 @@ plot_GSEA <- function(gsea_result, categroies=15) {
 #'
 #' @export
 or_test <- function(se, database="GO Biological Process", backend="enrichr", direction="UP", log2_threshold=0.7, alpha=0.05) {
+  if (is.data.frame(database)) {
+    if (backend != "clusterProfiler")
+      stop("Custom GMT data frames are only supported with backend = 'clusterProfiler'.", call. = FALSE)
+    if (ncol(database) < 2)
+      stop("Custom GMT data frame must have at least 2 columns: term name and gene symbol.", call. = FALSE)
+    if (nrow(database) == 0)
+      stop("Custom GMT data frame is empty.", call. = FALSE)
+return(test_ora_mod(se, databases = database, backend = "clusterProfiler",
+                        contrasts = TRUE, direction = direction,
+                        log2_threshold = log2_threshold, alpha = alpha))
+  }
   if (backend == "enrichr") {
     database_mappings <- c(
       "GO Biological Process" = "GO_Biological_Process_2021",
@@ -539,7 +550,7 @@ test_ora_mod <- function(dep,
                          alpha = 0.05, adjust_alpha = TRUE) {
   # Show error if inputs are not the required classes
   assertthat::assert_that(inherits(dep, "SummarizedExperiment"),
-                          is.character(databases),
+                          is.character(databases) || is.data.frame(databases),
                           is.logical(contrasts),
                           length(contrasts) == 1)
 
@@ -606,24 +617,33 @@ test_ora_mod <- function(dep,
                               stringsAsFactors = FALSE)
 
       # --- Pre-compute background ID mappings & db-specific setup ONCE ---
-      organism_db_map <- ifelse(endsWith(databases, "(Mouse)"), "org.Mm.eg.db", "org.Hs.eg.db")
-      bg_entrez    <- NULL
-      hallmark     <- NULL
-      organism_map <- NULL
-      if (startsWith(databases, "KEGG") || startsWith(databases, "WikiPathways")) {
-        bg_entrez <- bitr(background, fromType = "SYMBOL",
-                          toType = c("ENTREZID"), OrgDb = organism_db_map)$ENTREZID
-      }
-      if (startsWith(databases, "KEGG")) {
-        organism_map <- ifelse(endsWith(databases, "(Mouse)"), "mmu", "hsa")
-      } else if (startsWith(databases, "WikiPathways")) {
-        organism_map <- ifelse(endsWith(databases, "(Mouse)"), "Mus musculus", "Homo sapiens")
-      } else if (databases == "Hallmark") {
-        hallmark <- msigdbr::msigdbr(species = "Homo sapiens", collection = "H") %>%
-          dplyr::select(gs_name, gene_symbol)
-      } else if (!databases %in% c("MF", "BP", "CC")) {
-        stop("Not a valid database, please choose from 'KEGG', 'WikiPathways', 'Hallmark', 'MF', 'BP', 'CC'",
-             call. = FALSE)
+      term2gene       <- NULL
+      background_up   <- NULL
+      organism_db_map <- NULL
+      bg_entrez       <- NULL
+      hallmark        <- NULL
+      organism_map    <- NULL
+      if (is.data.frame(databases)) {
+        term2gene     <- databases
+        term2gene[[2]] <- toupper(term2gene[[2]])
+        background_up <- toupper(background)
+      } else {
+        organism_db_map <- ifelse(endsWith(databases, "(Mouse)"), "org.Mm.eg.db", "org.Hs.eg.db")
+        if (startsWith(databases, "KEGG") || startsWith(databases, "WikiPathways")) {
+          bg_entrez <- bitr(background, fromType = "SYMBOL",
+                            toType = c("ENTREZID"), OrgDb = organism_db_map)$ENTREZID
+        }
+        if (startsWith(databases, "KEGG")) {
+          organism_map <- ifelse(endsWith(databases, "(Mouse)"), "mmu", "hsa")
+        } else if (startsWith(databases, "WikiPathways")) {
+          organism_map <- ifelse(endsWith(databases, "(Mouse)"), "Mus musculus", "Homo sapiens")
+        } else if (databases == "Hallmark") {
+          hallmark <- msigdbr::msigdbr(species = "Homo sapiens", collection = "H") %>%
+            dplyr::select(gs_name, gene_symbol)
+        } else if (!databases %in% c("MF", "BP", "CC")) {
+          stop("Not a valid database, please choose from 'KEGG', 'WikiPathways', 'Hallmark', 'MF', 'BP', 'CC'",
+               call. = FALSE)
+        }
       }
 
       for(contrast in constrast_columns) {
@@ -660,7 +680,10 @@ test_ora_mod <- function(dep,
           genes <- unique(significant$Gene)
         }
 
-        if (startsWith(databases, "KEGG")) {
+        if (is.data.frame(databases)) {
+          result <- enricher(toupper(genes), universe = background_up,
+                             TERM2GENE = term2gene, pvalueCutoff = 1, qvalueCutoff = 1)
+        } else if (startsWith(databases, "KEGG")) {
           mappings <- bitr(genes, fromType = "SYMBOL",
                            toType = c("ENTREZID"), OrgDb = organism_db_map)
           result <- enrichKEGG(gene = mappings$ENTREZID,
@@ -700,7 +723,7 @@ test_ora_mod <- function(dep,
       }
       lookup <- c("Term" = "Description", "P.value" = "pvalue", "Adjusted.P.value" = "p.adjust", "IN" = "Count")
       df_enrich <- dplyr::rename(df_enrich, all_of(lookup))
-      df_enrich$var <- databases
+      df_enrich$var <- if (is.data.frame(databases)) "custom" else databases
       df_enrich$Overlap <- paste0(df_enrich$IN, "/", as.numeric(gsub("/.*", "", df_enrich$BgRatio)))
       # Compute log odds from GeneRatio and BgRatio
       bg_IN  <- as.numeric(gsub("/.*", "", df_enrich$BgRatio))
@@ -737,53 +760,61 @@ test_ora_mod <- function(dep,
         }
       }
 
-      organism_db_map <- ifelse(endsWith(databases, "(Mouse)"), "org.Mm.eg.db", "org.Hs.eg.db")
-      bg_entrez    <- NULL
-      hallmark     <- NULL
-      organism_map <- NULL
-      if (startsWith(databases, "KEGG") || startsWith(databases, "WikiPathways")) {
-        bg_entrez <- bitr(background, fromType = "SYMBOL",
-                          toType = c("ENTREZID"), OrgDb = organism_db_map)$ENTREZID
-      }
+      if (is.data.frame(databases)) {
+        term2gene_s   <- databases
+        term2gene_s[[2]] <- toupper(term2gene_s[[2]])
+        background_up_s  <- toupper(background)
+        result <- enricher(toupper(genes), universe = background_up_s,
+                           TERM2GENE = term2gene_s, pvalueCutoff = 1, qvalueCutoff = 1)
+      } else {
+        organism_db_map <- ifelse(endsWith(databases, "(Mouse)"), "org.Mm.eg.db", "org.Hs.eg.db")
+        bg_entrez    <- NULL
+        hallmark     <- NULL
+        organism_map <- NULL
+        if (startsWith(databases, "KEGG") || startsWith(databases, "WikiPathways")) {
+          bg_entrez <- bitr(background, fromType = "SYMBOL",
+                            toType = c("ENTREZID"), OrgDb = organism_db_map)$ENTREZID
+        }
 
-      if (startsWith(databases, "KEGG")) {
-        organism_map <- ifelse(endsWith(databases, "(Mouse)"), "mmu", "hsa")
-        mappings <- bitr(genes, fromType = "SYMBOL",
-                         toType = c("ENTREZID"), OrgDb = organism_db_map)
-        result <- enrichKEGG(gene = mappings$ENTREZID,
+        if (startsWith(databases, "KEGG")) {
+          organism_map <- ifelse(endsWith(databases, "(Mouse)"), "mmu", "hsa")
+          mappings <- bitr(genes, fromType = "SYMBOL",
+                           toType = c("ENTREZID"), OrgDb = organism_db_map)
+          result <- enrichKEGG(gene = mappings$ENTREZID,
+                               universe = bg_entrez,
+                               keyType = "ncbi-geneid",
+                               organism = organism_map,
+                               pvalueCutoff = 1,
+                               qvalueCutoff = 1)
+          result <- setReadable(result, OrgDb = organism_db_map, keyType = "ENTREZID")
+        } else if (startsWith(databases, "WikiPathways")) {
+          organism_map <- ifelse(endsWith(databases, "(Mouse)"), "Mus musculus", "Homo sapiens")
+          mappings <- bitr(genes, fromType = "SYMBOL",
+                           toType = c("ENTREZID"), OrgDb = organism_db_map)
+          result <- enrichWP(gene = mappings$ENTREZID,
                              universe = bg_entrez,
-                             keyType = "ncbi-geneid",
                              organism = organism_map,
                              pvalueCutoff = 1,
                              qvalueCutoff = 1)
-        result <- setReadable(result, OrgDb = organism_db_map, keyType = "ENTREZID")
-      } else if (startsWith(databases, "WikiPathways")) {
-        organism_map <- ifelse(endsWith(databases, "(Mouse)"), "Mus musculus", "Homo sapiens")
-        mappings <- bitr(genes, fromType = "SYMBOL",
-                         toType = c("ENTREZID"), OrgDb = organism_db_map)
-        result <- enrichWP(gene = mappings$ENTREZID,
-                           universe = bg_entrez,
-                           organism = organism_map,
-                           pvalueCutoff = 1,
-                           qvalueCutoff = 1)
-        result <- setReadable(result, OrgDb = organism_db_map, keyType = "ENTREZID")
-      } else if (databases == "Hallmark") {
-        hallmark <- msigdbr::msigdbr(species = "Homo sapiens", collection = "H") %>%
-          dplyr::select(gs_name, gene_symbol)
-        result <- enricher(genes, universe = background,
-                           TERM2GENE = hallmark, pvalueCutoff = 1, qvalueCutoff = 1)
-      } else if (databases %in% c("MF", "BP", "CC")) {
-        result <- enrichGO(gene = genes,
-                           universe = background,
-                           OrgDb = organism_db_map,
-                           ont = databases,
-                           keyType = "SYMBOL",
-                           pAdjustMethod = "BH",
-                           pvalueCutoff  = 1,
-                           qvalueCutoff  = 1)
-      } else {
-        stop("Not a valid database, please choose from 'KEGG', 'WikiPathways', 'Hallmark', 'MF', 'BP', 'CC'",
-             call. = FALSE)
+          result <- setReadable(result, OrgDb = organism_db_map, keyType = "ENTREZID")
+        } else if (databases == "Hallmark") {
+          hallmark <- msigdbr::msigdbr(species = "Homo sapiens", collection = "H") %>%
+            dplyr::select(gs_name, gene_symbol)
+          result <- enricher(genes, universe = background,
+                             TERM2GENE = hallmark, pvalueCutoff = 1, qvalueCutoff = 1)
+        } else if (databases %in% c("MF", "BP", "CC")) {
+          result <- enrichGO(gene = genes,
+                             universe = background,
+                             OrgDb = organism_db_map,
+                             ont = databases,
+                             keyType = "SYMBOL",
+                             pAdjustMethod = "BH",
+                             pvalueCutoff  = 1,
+                             qvalueCutoff  = 1)
+        } else {
+          stop("Not a valid database, please choose from 'KEGG', 'WikiPathways', 'Hallmark', 'MF', 'BP', 'CC'",
+               call. = FALSE)
+        }
       }
 
       df_enrich <- as.data.frame(result)
@@ -792,7 +823,7 @@ test_ora_mod <- function(dep,
 
       lookup <- c("Term" = "Description", "P.value" = "pvalue", "Adjusted.P.value" = "p.adjust", "IN" = "Count")
       df_enrich <- dplyr::rename(df_enrich, all_of(lookup))
-      df_enrich$var <- databases
+      df_enrich$var <- if (is.data.frame(databases)) "custom" else databases
       df_enrich$Overlap <- paste0(df_enrich$IN, "/", as.numeric(gsub("/.*", "", df_enrich$BgRatio)))
       bg_IN  <- as.numeric(gsub("/.*", "", df_enrich$BgRatio))
       bg_OUT <- as.numeric(gsub(".*/", "", df_enrich$BgRatio)) - bg_IN
