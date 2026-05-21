@@ -69,7 +69,8 @@
 #' @seealso \code{\link{snf_analysis}}
 #'
 #' @importFrom ConsensusClusterPlus ConsensusClusterPlus
-#' @importFrom SummarizedExperiment assay metadata metadata<-
+#' @importFrom SummarizedExperiment assay
+#' @importFrom S4Vectors metadata "metadata<-"
 #'
 #' @export
 consensus_clustering_analysis <- function(se,
@@ -192,7 +193,8 @@ consensus_clustering_analysis <- function(se,
 #' @seealso \code{\link{consensus_clustering_analysis}}
 #'
 #' @importFrom SNFtool standardNormalization dist2 affinityMatrix SNF spectralClustering
-#' @importFrom SummarizedExperiment assay colData metadata metadata<-
+#' @importFrom SummarizedExperiment assay colData
+#' @importFrom S4Vectors metadata "metadata<-"
 #' @importFrom ComplexHeatmap Heatmap draw
 #' @importFrom grDevices png dev.off
 #'

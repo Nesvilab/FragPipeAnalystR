@@ -112,7 +112,8 @@ plot_missval_heatmap <- function(se) {
 #' @seealso \code{\link{plot_pca}}, \code{\link{get_cluster_heatmap}}
 #'
 #' @importFrom ComplexHeatmap Heatmap HeatmapAnnotation
-#' @importFrom SummarizedExperiment assay colData rowData metadata
+#' @importFrom SummarizedExperiment assay colData rowData
+#' @importFrom S4Vectors metadata
 #' @importFrom RColorBrewer brewer.pal brewer.pal.info
 #' @importFrom circlize colorRamp2
 #' @importFrom grid gpar

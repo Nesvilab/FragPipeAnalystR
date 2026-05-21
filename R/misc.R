@@ -355,7 +355,8 @@ plot_feature <- function(se, protein, index=NULL,
 #' @importFrom ggplot2 ggplot aes geom_bar geom_col scale_fill_manual
 #'   scale_y_continuous labs theme_bw theme element_blank element_line
 #'   element_text
-#' @importFrom SummarizedExperiment assay colData metadata
+#' @importFrom SummarizedExperiment assay colData
+#' @importFrom S4Vectors metadata
 #' @importFrom dplyr group_by summarize left_join filter if_all mutate
 #' @importFrom tidyr gather
 #' @importFrom tibble rownames_to_column
@@ -482,6 +483,7 @@ plot_feature_numbers <- function(se, exp=NULL, feature=NULL, fill="condition") {
 #' @importFrom data.table setDT
 #'
 #' @export
+
 plotCumulativeMissingPercent = function(se,
                                         smp_lst = NULL,
                                         title = ""){

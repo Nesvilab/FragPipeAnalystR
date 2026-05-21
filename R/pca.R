@@ -66,7 +66,8 @@
 #' @importFrom ggplot2 ggplot aes geom_point labs theme_bw theme element_blank
 #'   element_line facet_wrap geom_text
 #' @importFrom plotly plot_ly add_trace layout
-#' @importFrom SummarizedExperiment assay colData metadata
+#' @importFrom SummarizedExperiment assay colData
+#' @importFrom S4Vectors metadata
 #' @importFrom dplyr left_join select
 #' @importFrom tibble rownames_to_column
 #' @importFrom stats prcomp complete.cases

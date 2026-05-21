@@ -92,7 +92,8 @@ MD_normalization <- function(se) {
 #'
 #' @seealso \code{\link{GN_normalization}}, \code{\link{MD_normalization}}
 #'
-#' @importFrom SummarizedExperiment assay assay<- metadata
+#' @importFrom SummarizedExperiment assay assay<-
+#' @importFrom S4Vectors metadata
 #' @importFrom vsn vsnMatrix predict
 #' @importFrom assertthat assert_that
 #'
