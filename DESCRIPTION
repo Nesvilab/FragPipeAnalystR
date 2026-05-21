@@ -42,7 +42,7 @@ Imports:
     clusterProfiler,
     msigdbr,
     data.table,
-    uwot
+    uwot,
     ggvenn
 Suggests:
     devtools,

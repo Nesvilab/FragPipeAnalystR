@@ -73,9 +73,8 @@
 #' @importFrom stats prcomp complete.cases
 #'
 #' @export
-plot_pca <- function(dep, x = 1, y = 2, indicate = c("condition", "replicate"), method = c('PCA', 'MDS'),
+plot_pca <- function(dep, x = 1, y = 2, indicate = c("condition", "replicate"),
                      label = FALSE, n = 500, point_size = 8, label_size = 3, plot = TRUE, ID_col = "sample_name", exp = NULL, scale=F, interactive = F) {
-  method <- match.arg(method)
   if (is.null(exp)) {
     exp <- metadata(dep)$exp
   }
@@ -159,32 +158,15 @@ plot_pca <- function(dep, x = 1, y = 2, indicate = c("condition", "replicate"), 
     df <- data[order(var, decreasing = TRUE)[seq_len(n)], ]
   }
 
+  # Calculate PCA
+  pca <- prcomp(t(df), scale = scale)
+  pca_df <- pca$x %>%
+    data.frame() %>%
+    rownames_to_column() %>%
+    left_join(., data.frame(colData(dep)), by = c("rowname" = ID_col))
 
-  if (method == 'PCA') {
-    # Calculate PCA
-    pca <- prcomp(t(df), scale = scale)
-    pca_df <- pca$x %>%
-      data.frame() %>%
-      rownames_to_column() %>%
-      left_join(., data.frame(colData(dep)), by = c("rowname" = ID_col))
-
-    # Calculate the percentage of variance explained
-    percent <- round(100 * pca$sdev^2 / sum(pca$sdev^2), 1)
-
-  } else if (method == 'MDS') {
-    # Calculate MDS
-    dist_matrix <- dist(t(df))
-    mds <- cmdscale(dist_matrix, k = ncol(dep)-1, eig = T)
-    pca_df <- mds$points %>%
-      data.frame() %>%
-      setNames(paste0("PC", 1:ncol(.))) %>%
-      rownames_to_column() %>%
-      left_join(., data.frame(colData(dep)), by = c("rowname" = ID_col))
-
-    # Calculate the percentage of variance explained
-    percent <- round(100 * pmax(mds$eig, 0) / sum(mds$eig[mds$eig > 0]), 1)
-  }
-
+  # Calculate the percentage of variance explained
+  percent <- round(100 * pca$sdev^2 / sum(pca$sdev^2), 1)
 
   # Make factors of indicate features
   for (feat in indicate) {
@@ -359,7 +341,7 @@ plot_pca <- function(dep, x = 1, y = 2, indicate = c("condition", "replicate"), 
   } else { # static plot by ggplot2
     p <- ggplot(pca_df, aes(get(paste0("PC", x)), get(paste0("PC", y)))) +
       labs(
-        title = paste0(method, " plot - top ", n, " variable features"),
+        title = paste0("PCA plot - top ", n, " variable features"),
         x = paste0("PC", x, ": ", percent[x], "%"),
         y = paste0("PC", y, ": ", percent[y], "%")
       ) +
@@ -397,11 +379,11 @@ plot_pca <- function(dep, x = 1, y = 2, indicate = c("condition", "replicate"), 
         ),
         size = point_size
       ) +
-        facet_wrap(~ pca_df[[indicate[3]]])
-      labs(
-        col = indicate[1],
-        shape = indicate[2]
-      )
+        facet_wrap(~ pca_df[[indicate[3]]]) +
+        labs(
+          col = indicate[1],
+          shape = indicate[2]
+        )
     }
     if (label) {
       p <- p + geom_text(aes(label = rowname), size = label_size)
@@ -412,7 +394,322 @@ plot_pca <- function(dep, x = 1, y = 2, indicate = c("condition", "replicate"), 
     return(p)
   } else {
     df <- pca_df %>%
-      select(rowname, paste0("PC", c(x, y)), match(indicate, colnames(pca_df)))
+      select(rowname, paste0("PC", c(x, y)), all_of(indicate))
+    colnames(df)[1] <- "sample"
+    return(df)
+  }
+}
+
+#' @importFrom stats cmdscale dist cor
+#' @export
+plot_mds <- function(dep, x = 1, y = 2, indicate = c("condition", "replicate"),
+                     dist_method = c("euclidean", "correlation", "manhattan"),
+                     label = FALSE, n = 500, point_size = 8, label_size = 3, plot = TRUE, ID_col = "sample_name", exp = NULL, interactive = F) {
+  dist_method <- match.arg(dist_method)
+  if (is.null(exp)) {
+    exp <- metadata(dep)$exp
+  }
+
+  if (is.integer(x)) x <- as.numeric(x)
+  if (is.integer(y)) y <- as.numeric(y)
+  if (is.integer(n)) n <- as.numeric(n)
+  if (is.integer(point_size)) point_size <- as.numeric(point_size)
+  if (is.integer(label_size)) label_size <- as.numeric(label_size)
+  assertthat::assert_that(
+    inherits(dep, "SummarizedExperiment"),
+    is.numeric(x),
+    length(x) == 1,
+    is.numeric(y),
+    length(y) == 1,
+    is.numeric(n),
+    length(n) == 1,
+    is.character(indicate),
+    is.logical(label),
+    is.numeric(point_size),
+    length(point_size) == 1,
+    is.numeric(label_size),
+    length(label_size) == 1,
+    is.logical(plot),
+    length(plot) == 1
+  )
+
+  if (x > ncol(dep) | y > ncol(dep)) {
+    stop(
+      paste0(
+        "'x' and/or 'y' arguments are not valid\n",
+        "Run plot_mds() with 'x' and 'y' <= ",
+        ncol(dep), "."
+      ),
+      call. = FALSE
+    )
+  }
+
+  columns <- colnames(colData(dep))
+  if (!is.null(indicate)) {
+    if (length(indicate) > 3) {
+      stop("Too many features in 'indicate'
+        Run plot_mds() with a maximum of 3 indicate features")
+    }
+    if (any(!indicate %in% columns)) {
+      stop(
+        paste0(
+          "'",
+          paste0(indicate, collapse = "' and/or '"),
+          "' column(s) is/are not present in ",
+          deparse(substitute(dep)),
+          ".\nValid columns are: '",
+          paste(columns, collapse = "', '"),
+          "'."
+        ),
+        call. = FALSE
+      )
+    }
+  }
+
+  data <- assay(dep)
+  data <- data[complete.cases(data), ]
+  var <- apply(data, 1, sd)
+  if (n == 0) {
+    df <- data
+    n <- nrow(data)
+  } else if (n > nrow(data)) {
+    message(paste(
+      "'n' argument is larger than number of features availble(",
+      nrow(data), ").", nrow(data), "features will be used for MDS calculation."
+    ))
+    df <- data
+    n <- nrow(data)
+  } else {
+    df <- data[order(var, decreasing = TRUE)[seq_len(n)], ]
+  }
+
+  # Calculate MDS
+  dist_matrix <- switch(dist_method,
+    euclidean  = dist(t(df), method = "euclidean"),
+    manhattan  = dist(t(df), method = "manhattan"),
+    correlation = as.dist(1 - cor(df))
+  )
+  mds <- cmdscale(dist_matrix, k = ncol(dep) - 1, eig = TRUE)
+  mds_df <- mds$points %>%
+    data.frame() %>%
+    setNames(paste0("MDS", 1:ncol(.))) %>%
+    rownames_to_column() %>%
+    left_join(., data.frame(colData(dep)), by = c("rowname" = ID_col))
+
+  percent <- round(100 * pmax(mds$eig, 0) / sum(mds$eig[mds$eig > 0]), 1)
+
+  for (feat in indicate) {
+    mds_df[[feat]] <- as.factor(mds_df[[feat]])
+  }
+
+  if (interactive) {
+    if (length(indicate) == 1) {
+      p <- plot_ly(data = mds_df, type = "scatter", mode = "markers", marker = list(size = point_size)) %>%
+        plotly::layout(
+          title = paste0("MDS plot (", n, " features used)"),
+          xaxis = list(title = paste0("MDS", x, ": ", percent[x], "%")),
+          yaxis = list(title = paste0("MDS", y, ": ", percent[y], "%"))
+        ) %>%
+        add_trace(
+          type = "scatter",
+          x = ~MDS1,
+          y = ~MDS2,
+          color = as.formula(paste0("~", indicate[1])),
+          mode = "markers",
+          legendgroup = indicate[1],
+          legendgrouptitle_text = indicate[1]
+        )
+    } else if (length(indicate) == 2) {
+      if (exp == "TMT") {
+        mds_df$plex <- as.factor(mds_df$plex)
+        p <- plot_ly() %>%
+          add_trace(
+            data = mds_df, type = "scatter",
+            x = ~MDS1,
+            y = ~MDS2,
+            symbol = as.formula(paste0("~", indicate[2])),
+            marker = list(color = "grey", size = point_size + 3),
+            text = mds_df$sample_name,
+            hoverinfo = "text",
+            mode = "markers",
+            legendgroup = indicate[2],
+            legendgrouptitle_text = indicate[2]
+          ) %>%
+          add_trace(
+            data = mds_df, type = "scatter",
+            x = ~MDS1,
+            y = ~MDS2,
+            marker = list(size = point_size),
+            color = as.formula(paste0("~", indicate[1])),
+            mode = "markers",
+            text = mds_df$sample_name,
+            hoverinfo = "text",
+            legendgroup = indicate[1],
+            legendgrouptitle_text = indicate[1]
+          ) %>%
+          add_trace(
+            data = mds_df, type = "scatter",
+            x = ~MDS1,
+            y = ~MDS2,
+            marker = list(size = point_size),
+            color = as.formula(paste0("~", "plex")),
+            text = mds_df$sample_name,
+            hoverinfo = "text",
+            mode = "markers",
+            legendgroup = "plex",
+            legendgrouptitle_text = "plex",
+            xaxis = "x2", yaxis = "y2", visible = F
+          ) %>%
+          plotly::layout(
+            title = paste0("MDS plot (", n, " features used)"),
+            xaxis = list(title = paste0("MDS", x, ": ", percent[x], "%")),
+            xaxis2 = list(title = paste0("MDS", x, ": ", percent[x], "%"), overlaying = "x", visible = F),
+            yaxis = list(title = paste0("MDS", y, ": ", percent[y], "%")),
+            yaxis2 = list(title = paste0("MDS", y, ": ", percent[y], "%"), overlaying = "y", visible = F),
+            legend = list(
+              itemclick = FALSE,
+              itemdoubleclick = FALSE,
+              groupclick = FALSE
+            ),
+            updatemenus = list(
+              list(
+                y = 0.8,
+                buttons = list(
+                  list(
+                    method = "update",
+                    args = list(
+                      list(visible = unlist(Map(rep, x = c(T, T, F), each = c(
+                        length(unique(mds_df$condition)),
+                        length(unique(mds_df$replicate)),
+                        length(unique(mds_df$plex))
+                      )))),
+                      list(
+                        xaxis = list(title = paste0("MDS", x, ": ", percent[x], "%"), visible = TRUE),
+                        xaxis2 = list(overlaying = "x", visible = FALSE),
+                        yaxis = list(title = paste0("MDS", y, ": ", percent[y], "%"), visible = TRUE),
+                        yaxis2 = list(overlaying = "y", visible = FALSE)
+                      )
+                    ),
+                    label = "by condition"
+                  ),
+                  list(
+                    method = "update",
+                    args = list(
+                      list(visible = unlist(Map(rep, x = c(F, F, T), each = c(
+                        length(unique(mds_df$condition)),
+                        length(unique(mds_df$replicate)),
+                        length(unique(mds_df$plex))
+                      )))),
+                      list(
+                        xaxis = list(visible = F),
+                        xaxis2 = list(title = paste0("MDS", x, ": ", percent[x], "%"), overlaying = "x", visible = T),
+                        yaxis = list(visible = F),
+                        yaxis2 = list(title = paste0("MDS", y, ": ", percent[y], "%"), overlaying = "y", visible = T)
+                      )
+                    ),
+                    label = "by plex"
+                  )
+                )
+              )
+            )
+          )
+      } else {
+        p <- plot_ly(
+          data = mds_df, type = "scatter",
+          mode = "markers", marker = list(size = point_size), text = ~rowname
+        ) %>%
+          add_trace(
+            type = "scatter",
+            x = ~MDS1,
+            y = ~MDS2,
+            symbol = as.formula(paste0("~", indicate[2])),
+            marker = list(color = "grey", size = point_size + 3),
+            mode = "markers",
+            text = mds_df$sample_name,
+            hoverinfo = "text",
+            legendgroup = indicate[2],
+            legendgrouptitle_text = indicate[2]
+          ) %>%
+          add_trace(
+            type = "scatter",
+            x = ~MDS1,
+            y = ~MDS2,
+            color = as.formula(paste0("~", indicate[1])),
+            mode = "markers",
+            text = mds_df$sample_name,
+            hoverinfo = "text",
+            legendgroup = indicate[1],
+            legendgrouptitle_text = indicate[1]
+          ) %>%
+          plotly::layout(
+            title = paste0("MDS plot (", n, " features used)"),
+            xaxis = list(title = paste0("MDS", x, ": ", percent[x], "%")),
+            yaxis = list(title = paste0("MDS", y, ": ", percent[y], "%")),
+            legend = list(
+              itemclick = FALSE,
+              itemdoubleclick = FALSE,
+              groupclick = FALSE
+            )
+          )
+      }
+    }
+  } else { # static plot by ggplot2
+    p <- ggplot(mds_df, aes(get(paste0("MDS", x)), get(paste0("MDS", y)))) +
+      labs(
+        title = paste0("MDS plot - top ", n, " variable features"),
+        x = paste0("MDS", x, ": ", percent[x], "%"),
+        y = paste0("MDS", y, ": ", percent[y], "%")
+      ) +
+      theme_bw() +
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
+    if (length(indicate) == 0) {
+      p <- p + geom_point(size = point_size)
+    }
+    if (length(indicate) == 1) {
+      p <- p + geom_point(aes(col = mds_df[[indicate[1]]]),
+        size = point_size
+      ) +
+        labs(col = indicate[1])
+    }
+    if (length(indicate) == 2) {
+      p <- p + geom_point(
+        aes(
+          col = mds_df[[indicate[1]]],
+          shape = mds_df[[indicate[2]]]
+        ),
+        size = point_size
+      ) +
+        labs(
+          col = indicate[1],
+          shape = indicate[2]
+        )
+    }
+    if (length(indicate) == 3) {
+      p <- p + geom_point(
+        aes(
+          col = mds_df[[indicate[1]]],
+          shape = mds_df[[indicate[2]]]
+        ),
+        size = point_size
+      ) +
+        facet_wrap(~ mds_df[[indicate[3]]]) +
+        labs(
+          col = indicate[1],
+          shape = indicate[2]
+        )
+    }
+    if (label) {
+      p <- p + geom_text(aes(label = rowname), size = label_size)
+    }
+  }
+
+  if (plot) {
+    return(p)
+  } else {
+    df <- mds_df %>%
+      select(rowname, paste0("MDS", c(x, y)), all_of(indicate))
     colnames(df)[1] <- "sample"
     return(df)
   }
