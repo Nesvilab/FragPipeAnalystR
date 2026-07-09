@@ -172,6 +172,7 @@ PTM_normalization <- function(ptm_se, se, print_progress=F) {
   tl <- nrow(psite_df)* length(inter_sample)
   all_psite <- rep(0, tl)
   all_prot <- rep(0, tl)
+  all_index <- rep(NA_character_, tl)
   record_pos_start <- rep(0, length(inter_prot))
   record_pos_end <- rep(0, length(inter_prot))
   prot1 <- inter_prot[1]
@@ -181,11 +182,13 @@ PTM_normalization <- function(ptm_se, se, print_progress=F) {
 
   phos_d = c(t(as.matrix(sel_phos1[,inter_sample])))
   prot_d = rep(c(as.matrix(prot_sort_df[1, inter_sample])), nrow(sel_phos1))
+  index_d = rep(sel_phos1$Index, each = length(inter_sample))
 
   record_pos_start[1] = 1
   record_pos_end[1] = length(phos_d)
   all_psite[record_pos_start[1]: record_pos_end[1]] = phos_d
   all_prot[record_pos_start[1]: record_pos_end[1]] = prot_d
+  all_index[record_pos_start[1]: record_pos_end[1]] = index_d
 
   for(i in 2:length(inter_prot))
   {
@@ -194,10 +197,12 @@ PTM_normalization <- function(ptm_se, se, print_progress=F) {
       dplyr::filter(ProteinID == prot)
     phos_d = c(t(as.matrix(sel_phos[,inter_sample])))
     prot_d = rep(c(as.matrix(prot_sort_df[i, inter_sample])), nrow(sel_phos))
+    index_d = rep(sel_phos$Index, each = length(inter_sample))
     record_pos_start[i] = record_pos_end[i-1]+1
     record_pos_end[i] = record_pos_start[i]-1+ length(phos_d)
     all_psite[record_pos_start[i]: record_pos_end[i]] = phos_d
     all_prot[record_pos_start[i]: record_pos_end[i]] = prot_d
+    all_index[record_pos_start[i]: record_pos_end[i]] = index_d
     if(print_progress & i%%1000 ==0) {
       print(paste0(i, "/", length(inter_prot),"\n"))
     }
@@ -208,13 +213,14 @@ PTM_normalization <- function(ptm_se, se, print_progress=F) {
 
   p_df = data.frame(phospho = all_psite, prot = all_prot,
                     caseID = rep(inter_sample, nrow(psite_df)),
-                    Index = rep(psite_df$Index, each = length(inter_sample)),
+                    Index = all_index,
                     stringsAsFactors = F)%>%
     na.omit()
 
   rm(psite_df)
   rm(all_psite)
   rm(all_prot)
+  rm(all_index)
 
   p = lm(phospho~prot, data = p_df)
 
