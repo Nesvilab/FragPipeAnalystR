@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
         matrix:
-          R: ["4.5.0"]
+          R: ["4.5.2"]
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
@@ -28,7 +28,7 @@ jobs:
       - name: install required library
         run: |
           sudo apt-get update
-          sudo apt-get install libnetcdf19 libcurl4-openssl-dev libglpk-dev libnetcdf-dev libharfbuzz-dev libfribidi-dev libfontconfig1-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev
+          sudo apt-get install libnetcdf19 libcurl4-openssl-dev libglpk-dev libnetcdf-dev libharfbuzz-dev libfribidi-dev libfontconfig1-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev libcairo2-dev libx11-dev pandoc
       - uses: actions/checkout@v3
       - name: Setup R
         uses: r-lib/actions/setup-r@v2
