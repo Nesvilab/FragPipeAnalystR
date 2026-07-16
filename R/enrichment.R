@@ -1179,3 +1179,319 @@ visualize_kinome <- function(tsv_file, labels=NULL, log2fc=1, pval=0.05, legacy=
   }
   return(p)
 }
+
+#' Run Kinase-Library enrichment analysis on phosphoproteomics data
+#'
+#' Performs kinase enrichment analysis directly from a phosphoproteomics
+#' SummarizedExperiment object using the Python kinase-library package via
+#' reticulate. Supports two methods: differential phosphorylation enrichment
+#' (Fisher's exact test) and motif enrichment analysis (MEA, GSEA-based).
+#'
+#' @param se A \code{SummarizedExperiment} object with
+#'   \code{metadata(se)$exp_type == "phospho"} and a \code{SequenceWindow}
+#'   column in \code{rowData()}.
+#' @param col Character string specifying the column name in \code{rowData()}
+#'   containing log2 fold change values (e.g., \code{"Treatment_vs_Control_diff"}).
+#' @param p_col Character string specifying the column name in \code{rowData()}
+#'   containing p-values. Required when \code{method = "enrichment"};
+#'   ignored when \code{method = "mea"}. Default is \code{NULL}.
+#' @param method Character string specifying the analysis method:
+#'   \itemize{
+#'     \item \code{"enrichment"}: Differential phosphorylation enrichment using
+#'       Fisher's exact test (\code{DiffPhosData} class). Requires \code{p_col}.
+#'     \item \code{"mea"}: Motif enrichment analysis using pre-ranked GSEA
+#'       (\code{RankedPhosData} class). Only uses \code{col} for ranking.
+#'   }
+#' @param kin_type Character string specifying the kinase type:
+#'   \code{"ser_thr"} (default) or \code{"tyrosine"}.
+#' @param kl_method Character string specifying the kinase-library scoring
+#'   method: \code{"percentile_rank"} (default), \code{"percentile"},
+#'   \code{"score"}, or \code{"score_rank"}.
+#' @param kl_thresh Numeric threshold for the selected \code{kl_method}.
+#'   Defaults to 15 for \code{"ser_thr"} and 8 for \code{"tyrosine"}.
+#' @param pval_thresh Numeric p-value threshold for classifying sites as
+#'   up/down-regulated in \code{method = "enrichment"}. Default is \code{0.05}.
+#'
+#' @return A data frame with kinase enrichment results. The first column
+#'   \code{kinase} contains kinase names. Additional columns depend on the
+#'   method:
+#'   \itemize{
+#'     \item \code{"enrichment"}: \code{most_sig_log2_freq_factor},
+#'       \code{most_sig_fisher_pval}, \code{most_sig_fisher_adj_pval},
+#'       \code{most_sig_direction}, and per-direction columns.
+#'     \item \code{"mea"}: \code{NES}, \code{p.value}, \code{FDR}, and
+#'       other GSEA statistics.
+#'   }
+#'   The returned object has a \code{"kl_method"} attribute set to the
+#'   method used, for use by \code{\link{plot_kinase_enrichment}}.
+#'
+#' @details
+#' Requires the Python \code{kinase-library} package (install with
+#' \code{pip install kinase-library}) and the R \code{reticulate} package.
+#' The \code{SequenceWindow} column in \code{rowData(se)} should contain
+#' 15-mer peptide sequences centered on the phosphosite, with lowercase
+#' letters indicating phosphorylated residues (as produced by FragPipe).
+#'
+#' @examples
+#' \dontrun{
+#' # Differential phosphorylation enrichment (requires p-values)
+#' result <- run_kinase_library(se_phospho,
+#'                              col = "Treatment_vs_Control_diff",
+#'                              p_col = "Treatment_vs_Control_p.adj",
+#'                              method = "enrichment")
+#' plot_kinase_enrichment(result)
+#'
+#' # Motif enrichment analysis (ranking only)
+#' result_mea <- run_kinase_library(se_phospho,
+#'                                  col = "Treatment_vs_Control_diff",
+#'                                  method = "mea")
+#' plot_kinase_enrichment(result_mea)
+#' }
+#'
+#' @seealso \code{\link{plot_kinase_enrichment}}, \code{\link{prepare_kinome}},
+#'   \code{\link{visualize_kinome}}
+#'
+#' @export
+run_kinase_library <- function(se, col, p_col = NULL,
+                                method = c("enrichment", "mea"),
+                                kin_type = "ser_thr",
+                                kl_method = "percentile_rank",
+                                kl_thresh = NULL,
+                                pval_thresh = 0.05) {
+  method <- match.arg(method)
+
+  if (!requireNamespace("reticulate", quietly = TRUE)) {
+    stop("Package 'reticulate' is required. Install with: install.packages('reticulate')")
+  }
+  if (metadata(se)$exp_type != "phospho") {
+    stop("Kinase-library analysis requires a phosphorylation dataset (exp_type == 'phospho')")
+  }
+
+  rd <- as.data.frame(rowData(se))
+
+  if (!"SequenceWindow" %in% colnames(rd)) {
+    stop("rowData must contain a 'SequenceWindow' column")
+  }
+  if (!col %in% colnames(rd)) {
+    stop(sprintf("Column '%s' not found in rowData", col))
+  }
+  if (method == "enrichment" && is.null(p_col)) {
+    stop("'p_col' is required for method = 'enrichment'")
+  }
+  if (!is.null(p_col) && !p_col %in% colnames(rd)) {
+    stop(sprintf("Column '%s' not found in rowData", p_col))
+  }
+
+  if (is.null(kl_thresh)) {
+    kl_thresh <- if (kin_type == "tyrosine") 8L else 15L
+  }
+
+  input_df <- data.frame(
+    Sequence = rd[["SequenceWindow"]],
+    logFC = rd[[col]],
+    stringsAsFactors = FALSE
+  )
+  if (method == "enrichment") {
+    input_df$pval <- rd[[p_col]]
+  }
+  input_df <- input_df[!is.na(input_df$logFC), ]
+
+  kl <- reticulate::import("kinase_library")
+  py_df <- reticulate::r_to_py(input_df)
+
+  if (method == "enrichment") {
+    diff_phos <- kl$DiffPhosData(
+      py_df,
+      lfc_col = "logFC",
+      pval_col = "pval",
+      seq_col = "Sequence",
+      pval_thresh = pval_thresh,
+      suppress_warnings = TRUE
+    )
+    enr_res <- diff_phos$kinase_enrichment(
+      kin_type = kin_type,
+      kl_method = kl_method,
+      kl_thresh = kl_thresh
+    )
+    result <- as.data.frame(enr_res$combined_enrichment_results)
+    result$kinase <- rownames(result)
+    rownames(result) <- NULL
+    colnames(result) <- make.names(colnames(result))
+  } else {
+    ranked_phos <- kl$RankedPhosData(
+      dp_data = py_df,
+      rank_col = "logFC",
+      seq_col = "Sequence"
+    )
+    mea_res <- ranked_phos$mea(
+      kin_type = kin_type,
+      kl_method = kl_method,
+      kl_thresh = kl_thresh
+    )
+    result <- as.data.frame(mea_res$enrichment_results)
+    result$kinase <- rownames(result)
+    rownames(result) <- NULL
+    # Normalize column names regardless of reticulate version
+    colnames(result) <- make.names(colnames(result))
+    # Canonical renames for MEA output columns
+    col_map <- c("NOM.p.val" = "p.value", "FDR.q.val" = "FDR",
+                 "Tag.." = "subs_fraction", "Subs.fraction" = "subs_fraction",
+                 "Lead_genes" = "leading_substrates",
+                 "Leading.substrates" = "leading_substrates")
+    for (old in names(col_map)) {
+      if (old %in% colnames(result)) {
+        colnames(result)[colnames(result) == old] <- col_map[[old]]
+      }
+    }
+    # Reticulate may return numpy scalars as R lists; coerce to numeric vectors
+    for (col in setdiff(colnames(result), "kinase")) {
+      if (is.list(result[[col]])) {
+        result[[col]] <- as.numeric(unlist(result[[col]]))
+      }
+    }
+  }
+
+  message("run_kinase_library: result columns: ",
+          paste(colnames(result), collapse = ", "))
+  attr(result, "kl_method") <- method
+  result
+}
+
+# Internal helper shared by both volcano plot functions
+.kl_volcano <- function(result, score_col, adj_pval_col, score_thresh,
+                         pval, labels, title, x_label, y_label) {
+  available <- paste(colnames(result), collapse = ", ")
+  if (!score_col %in% colnames(result)) {
+    stop(sprintf("Column '%s' not found. Available: %s", score_col, available))
+  }
+  if (!adj_pval_col %in% colnames(result)) {
+    stop(sprintf("Column '%s' not found. Available: %s", adj_pval_col, available))
+  }
+
+  result$kl_score        <- as.numeric(result[[score_col]])
+  result$kl_neg_log10_pv <- -log10(as.numeric(result[[adj_pval_col]]) +
+                                     .Machine$double.eps)
+
+  base_theme <- list(
+    theme_bw(),
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_blank(),
+          axis.line = element_line(colour = "black")),
+    labs(x = x_label, y = y_label)
+  )
+
+  if (is.null(labels)) {
+    sig <- !is.na(result$kl_score) &
+      abs(result$kl_score) > score_thresh &
+      result$kl_neg_log10_pv > -log10(pval)
+    p <- ggplot(result, aes(x = kl_score, y = kl_neg_log10_pv, label = kinase)) +
+      geom_point() +
+      geom_text_repel(data = result[sig, , drop = FALSE]) +
+      base_theme
+  } else {
+    p <- ggplot(result, aes(x = kl_score, y = kl_neg_log10_pv, label = kinase)) +
+      geom_point(data = subset(result, !kinase %in% labels), color = "black") +
+      geom_point(data = subset(result, kinase %in% labels), color = "red") +
+      geom_text_repel(data = subset(result, kinase %in% labels), color = "red") +
+      base_theme
+  }
+
+  if (!is.null(title)) p <- p + ggtitle(title)
+  p
+}
+
+#' Plot differential phosphorylation kinase enrichment results
+#'
+#' Creates a volcano-style scatter plot for results from
+#' \code{\link{run_kinase_library}} with \code{method = "enrichment"}.
+#' X-axis shows the log2 frequency factor; y-axis shows -log10 adjusted
+#' p-value from Fisher's exact test.
+#'
+#' @param result A data frame returned by \code{run_kinase_library(..., method = "enrichment")}.
+#' @param labels Character vector of kinase names to highlight in red.
+#'   When \code{NULL} (default), kinases are labeled automatically based on
+#'   \code{lfc} and \code{pval} thresholds.
+#' @param lfc Numeric threshold for \code{|most_sig_log2_freq_factor|} used
+#'   for automatic labeling. Default is \code{1}.
+#' @param pval Numeric adjusted p-value threshold for automatic labeling.
+#'   Default is \code{0.05}.
+#' @param title Character string for the plot title. Default is \code{NULL}.
+#'
+#' @return A \code{ggplot} object.
+#'
+#' @examples
+#' \dontrun{
+#' result <- run_kinase_library(se_phospho,
+#'                              col = "Treatment_vs_Control_diff",
+#'                              p_col = "Treatment_vs_Control_p.adj",
+#'                              method = "enrichment")
+#' plot_kinase_enrichment(result)
+#' plot_kinase_enrichment(result, labels = c("AKT1", "MAPK1"))
+#' }
+#'
+#' @seealso \code{\link{run_kinase_library}}, \code{\link{plot_kinase_mea}}
+#'
+#' @importFrom ggplot2 ggplot aes geom_point theme_bw theme element_blank
+#'   element_line labs ggtitle
+#' @importFrom ggrepel geom_text_repel
+#'
+#' @export
+plot_kinase_enrichment <- function(result, labels = NULL, lfc = 1,
+                                    pval = 0.05, title = NULL) {
+  .kl_volcano(result,
+              score_col    = "most_sig_log2_freq_factor",
+              adj_pval_col = "most_sig_fisher_adj_pval",
+              score_thresh = lfc,
+              pval         = pval,
+              labels       = labels,
+              title        = title,
+              x_label      = "Enrichment Score (log2 freq. factor)",
+              y_label      = "-log10(adjusted p-value)")
+}
+
+#' Plot motif enrichment analysis (MEA) kinase results
+#'
+#' Creates a volcano-style scatter plot for results from
+#' \code{\link{run_kinase_library}} with \code{method = "mea"}.
+#' X-axis shows NES (Normalized Enrichment Score); y-axis shows
+#' -log10 FDR.
+#'
+#' @param result A data frame returned by \code{run_kinase_library(..., method = "mea")}.
+#' @param labels Character vector of kinase names to highlight in red.
+#'   When \code{NULL} (default), kinases are labeled automatically based on
+#'   \code{nes} and \code{pval} thresholds.
+#' @param nes Numeric threshold for \code{|NES|} used for automatic labeling.
+#'   Default is \code{1}.
+#' @param pval Numeric FDR threshold for automatic labeling. Default is \code{0.05}.
+#' @param title Character string for the plot title. Default is \code{NULL}.
+#'
+#' @return A \code{ggplot} object.
+#'
+#' @examples
+#' \dontrun{
+#' result <- run_kinase_library(se_phospho,
+#'                              col = "Treatment_vs_Control_diff",
+#'                              method = "mea")
+#' plot_kinase_mea(result)
+#' plot_kinase_mea(result, labels = c("ERK1", "ERK2"))
+#' }
+#'
+#' @seealso \code{\link{run_kinase_library}}, \code{\link{plot_kinase_enrichment}}
+#'
+#' @importFrom ggplot2 ggplot aes geom_point theme_bw theme element_blank
+#'   element_line labs ggtitle
+#' @importFrom ggrepel geom_text_repel
+#'
+#' @export
+plot_kinase_mea <- function(result, labels = NULL, nes = 1,
+                             pval = 0.05, title = NULL) {
+  .kl_volcano(result,
+              score_col    = "NES",
+              adj_pval_col = "FDR",
+              score_thresh = nes,
+              pval         = pval,
+              labels       = labels,
+              title        = title,
+              x_label      = "NES",
+              y_label      = "-log10(FDR)")
+}

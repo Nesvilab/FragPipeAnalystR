@@ -45,6 +45,7 @@ Imports:
     ggvenn,
     uwot
 Suggests:
+    reticulate,
     devtools,
     ensembldb,
     knitr,
