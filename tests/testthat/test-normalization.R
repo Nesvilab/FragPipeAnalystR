@@ -121,10 +121,10 @@ test_that("PTM_normalization drops sites without a parent protein by default, an
 
   result_default <- PTM_normalization(ptm_se, se)
   expect_setequal(rownames(result_default), c("PROTA_S10", "PROTB_S20"))
-  default_parent <- SummarizedExperiment::rowData(result_default)$ParentProteinID
-  names(default_parent) <- rownames(result_default)
-  expect_equal(default_parent[["PROTA_S10"]], "PROTA")
-  expect_equal(default_parent[["PROTB_S20"]], "PROTB")
+  default_matched <- SummarizedExperiment::rowData(result_default)$ParentProteinMatched
+  names(default_matched) <- rownames(result_default)
+  expect_true(default_matched[["PROTA_S10"]])
+  expect_true(default_matched[["PROTB_S20"]])
 
   result_kept <- PTM_normalization(ptm_se, se, keep_unmatched = TRUE)
   expect_setequal(rownames(result_kept), ptm_index)
@@ -132,9 +132,9 @@ test_that("PTM_normalization drops sites without a parent protein by default, an
   kept_assay <- as.matrix(SummarizedExperiment::assay(result_kept))
   expect_equal(unname(kept_assay["PROTC_S30", ]), c(100, 90, 80, 70))
 
-  kept_parent <- SummarizedExperiment::rowData(result_kept)$ParentProteinID
-  names(kept_parent) <- rownames(result_kept)
-  expect_equal(kept_parent[["PROTA_S10"]], "PROTA")
-  expect_equal(kept_parent[["PROTB_S20"]], "PROTB")
-  expect_true(is.na(kept_parent[["PROTC_S30"]]))
+  kept_matched <- SummarizedExperiment::rowData(result_kept)$ParentProteinMatched
+  names(kept_matched) <- rownames(result_kept)
+  expect_true(kept_matched[["PROTA_S10"]])
+  expect_true(kept_matched[["PROTB_S20"]])
+  expect_false(kept_matched[["PROTC_S30"]])
 })
