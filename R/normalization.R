@@ -130,7 +130,10 @@ VSN_normalization <- function(se) {
 #'   PTM data. The assay values represent the residuals from regressing PTM
 #'   intensities on protein intensities. If \code{keep_unmatched = TRUE}, PTM
 #'   sites without a matched parent protein are also included, with their
-#'   original values left un-normalized.
+#'   original values left un-normalized. The rowData gains a
+#'   \code{ParentProteinID} column recording which protein (if any) each site
+#'   was normalized against; it is \code{NA} for sites with no matched parent
+#'   protein.
 #'
 #' @details
 #' This normalization is useful for phosphoproteomics and other PTM studies
@@ -149,6 +152,8 @@ VSN_normalization <- function(se) {
 #' normalized this way, since there is no protein-level signal to regress
 #' against. By default such sites are dropped from the result; set
 #' \code{keep_unmatched = TRUE} to retain them with their original values.
+#' The returned rowData's \code{ParentProteinID} column marks which sites
+#' were actually matched (protein ID) versus kept unmatched (\code{NA}).
 #'
 #' @examples
 #' \dontrun{
@@ -305,6 +310,12 @@ PTM_normalization <- function(ptm_se, se, print_progress=F, keep_unmatched=F) {
   normalized_se <- ptm_se
   normalized_se <- normalized_se[subpsite$Index, inter_sample]
   assay(normalized_se) <- subpsite[,-c(1)]
+
+  # Record which parent protein (if any) each site was normalized against,
+  # so matched and unmatched (kept via keep_unmatched) sites are distinguishable.
+  parent_protein_id <- rowData(normalized_se)$ProteinID
+  parent_protein_id[rownames(normalized_se) %in% unmatched_index] <- NA
+  rowData(normalized_se)$ParentProteinID <- parent_protein_id
 
   return(normalized_se)
 }
