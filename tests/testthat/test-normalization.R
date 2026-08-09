@@ -87,3 +87,44 @@ test_that("PTM_normalization removes correlation with protein-level abundance", 
   expect_equal(sum(residuals), 0, tolerance = 1e-8)
   expect_equal(unname(cor(residuals, prot_values)), 0, tolerance = 1e-8)
 })
+
+test_that("PTM_normalization drops sites without a parent protein by default, and keeps them when asked", {
+  samples <- paste0("S", 1:4)
+
+  prot_assay <- matrix(
+    c(1, 2, 3, 4,
+      4, 3, 2, 1),
+    nrow = 2, byrow = TRUE,
+    dimnames = list(c("PROTA", "PROTB"), samples)
+  )
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = prot_assay),
+    rowData = S4Vectors::DataFrame(ProteinID = c("PROTA", "PROTB"), Index = c("PROTA", "PROTB")),
+    colData = S4Vectors::DataFrame(sample_name = samples)
+  )
+
+  # PROTC has no matching entry in `se`, so its site can't be regressed
+  # against a parent protein.
+  ptm_index <- c("PROTA_S10", "PROTB_S20", "PROTC_S30")
+  ptm_prot <- c("PROTA", "PROTB", "PROTC")
+  ptm_assay <- matrix(
+    c(10, 20, 30, 40,
+      1, 3, 5, 7,
+      100, 90, 80, 70),
+    nrow = 3, byrow = TRUE, dimnames = list(ptm_index, samples)
+  )
+  ptm_se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = ptm_assay),
+    rowData = S4Vectors::DataFrame(ProteinID = ptm_prot, Index = ptm_index),
+    colData = S4Vectors::DataFrame(sample_name = samples)
+  )
+
+  result_default <- PTM_normalization(ptm_se, se)
+  expect_setequal(rownames(result_default), c("PROTA_S10", "PROTB_S20"))
+
+  result_kept <- PTM_normalization(ptm_se, se, keep_unmatched = TRUE)
+  expect_setequal(rownames(result_kept), ptm_index)
+
+  kept_assay <- as.matrix(SummarizedExperiment::assay(result_kept))
+  expect_equal(unname(kept_assay["PROTC_S30", ]), c(100, 90, 80, 70))
+})
