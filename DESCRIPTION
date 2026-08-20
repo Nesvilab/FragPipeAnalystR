@@ -43,6 +43,7 @@ Imports:
     msigdbr,
     data.table,
     ggvenn,
+    ggpubr,
     uwot
 Suggests:
     devtools,
