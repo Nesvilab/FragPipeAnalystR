@@ -235,6 +235,7 @@ plot_GSEA <- function(gsea_result, categroies=15) {
 #'
 #' @seealso \code{\link{plot_or}}, \code{\link{GSEA_test}}
 #'
+#' @importFrom stats phyper p.adjust
 #' @export
 or_test <- function(se, database="GO Biological Process", backend="enrichr", direction="UP", log2_threshold=0.7, alpha=0.05) {
   if (backend == "enrichr") {
@@ -780,9 +781,9 @@ test_ora_mod <- function(dep,
       mutate(log_odds = log2((IN * bg_OUT) / (OUT * bg_IN)))
     cat("Done.")
   }
-  df_enrich$p_hyper = phyper(q=(df_enrich$IN-1), m = df_enrich$bg_IN, n = df_enrich$bg_OUT, k = (df_enrich$IN+df_enrich$OUT),
+  df_enrich$p_hyper = stats::phyper(q=(df_enrich$IN-1), m = df_enrich$bg_IN, n = df_enrich$bg_OUT, k = (df_enrich$IN+df_enrich$OUT),
                              lower.tail = F )
-  df_enrich$p.adjust_hyper = p.adjust(df_enrich$p_hyper, method = "BH")
+  df_enrich$p.adjust_hyper = stats::p.adjust(df_enrich$p_hyper, method = "BH")
   return(df_enrich)
 }
 
@@ -818,7 +819,7 @@ enrichr_mod <- function(genes, databases = NULL) {
                query=list(file="API", backgroundType=x))
       r <- gsub("&#39;", "'", intToUtf8(r$content))
       tc <- textConnection(r)
-      r <- read.table(tc, sep = "\t", header = TRUE, quote = "", comment.char="")
+      r <- utils::read.table(tc, sep = "\t", header = TRUE, quote = "", comment.char="")
       close(tc)
       cat("Done.\n")
       return(r)
@@ -1074,6 +1075,8 @@ visualize_PTMSEA <- function(gct_file, col, selected_concepts=NULL, num_concepts
 #'
 #' @seealso \code{\link{visualize_kinome}}
 #'
+#' @importFrom utils write.table
+#'
 #' @export
 prepare_kinome <- function(se, col, outfile, format="asterisk", p_col=NULL) {
   # Generate input for kinome analysis: https://kinase-library.phosphosite.org/ea
@@ -1154,7 +1157,7 @@ prepare_kinome <- function(se, col, outfile, format="asterisk", p_col=NULL) {
 #' @export
 visualize_kinome <- function(tsv_file, labels=NULL, log2fc=1, pval=0.05, legacy=F) {
   if (legacy) {
-    data <- read.csv(tsv_file, sep = "\t", stringsAsFactors = F)
+    data <- utils::read.csv(tsv_file, sep = "\t", stringsAsFactors = F)
   } else {
     data <- fread(tsv_file, sep="\t", stringsAsFactors = F, data.table = F)
     colnames(data)[colnames(data) %in% c("Gene Name")] <- "kinase"

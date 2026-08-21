@@ -92,6 +92,7 @@ impute <- function(se, fun = c(
 #' Sets the width of the distribution relative to the
 #' standard deviation of the original distribution.
 #' @return An imputed SummarizedExperiment object.
+#' @importFrom stats median sd rnorm
 #' @export
 manual_impute <- function(se, scale = 0.3, shift = 1.8, seed=NULL) {
   if (is.null(seed)) seed <- 123

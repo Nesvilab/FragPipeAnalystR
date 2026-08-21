@@ -148,7 +148,7 @@ VSN_normalization <- function(se) {
 #'
 #' @importFrom SummarizedExperiment assay assay<- rowData colData
 #' @importFrom dplyr filter left_join mutate select
-#' @importFrom stats lm cor
+#' @importFrom stats lm cor na.omit
 #'
 #' @export
 PTM_normalization <- function(ptm_se, se, print_progress=F) {
