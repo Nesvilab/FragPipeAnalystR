@@ -33,7 +33,7 @@
 #'
 #' @export
 PSM_barplot <- function(result_dir) {
-  total_count <- count()
+  total_count <- c()
   files <- Sys.glob(paste0(result_dir, "/*/", "psm.tsv"))
   for (i in 1:length(files)){
     temp <- fread(files[i], data.table = F)
