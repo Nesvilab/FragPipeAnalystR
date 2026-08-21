@@ -53,6 +53,7 @@
 #'
 #' @seealso \code{\link{test_diff}}, \code{\link{add_rejections}}, \code{\link{plot_volcano}}
 #'
+#' @importFrom stats model.matrix formula
 #' @export
 test_limma <- function(se, type = c("control", "all", "others", "manual"),
                        control = NULL, test = NULL,
@@ -323,6 +324,7 @@ test_limma <- function(se, type = c("control", "all", "others", "manual"),
 #'
 #' @seealso \code{\link{test_limma}}, \code{\link{add_rejections}}, \code{\link{plot_volcano}}
 #'
+#' @importFrom stats model.matrix formula
 #' @export
 test_diff <- function(se, type = c("control", "all", "manual"),
                       control = NULL, test = NULL,

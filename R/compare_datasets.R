@@ -19,6 +19,7 @@
 #' @importFrom SummarizedExperiment assay rowData
 #' @importFrom tidyr gather
 #' @importFrom dplyr group_by summarise filter
+#' @importFrom stats sd cor
 #' @export
 calculate_feature_wise_correlation_SE <- function(
     se1, se2, assay1 = 1, assay2 = 1,
@@ -132,6 +133,7 @@ calculate_sample_wise_correlation_SE <- function(
 #'   theme scale_fill_manual
 #' @importFrom ggpubr theme_pubr
 #' @importFrom dplyr mutate
+#' @importFrom stats p.adjust
 #' @export
 plot_feature_wise_correlation <- function(feature_cor_df, alpha = 0.01) {
   x <- feature_cor_df
@@ -176,6 +178,7 @@ plot_feature_wise_correlation <- function(feature_cor_df, alpha = 0.01) {
 #'   theme scale_fill_manual
 #' @importFrom ggpubr theme_pubr
 #' @importFrom dplyr mutate
+#' @importFrom stats p.adjust
 #' @export
 plot_feature_wise_correlation_density <- function(feature_cor_df, alpha = 0.01) {
   x <- feature_cor_df
@@ -216,6 +219,7 @@ plot_feature_wise_correlation_density <- function(feature_cor_df, alpha = 0.01) 
 #' @return A \code{ggplot} object.
 #' @importFrom ggplot2 ggplot aes geom_density geom_vline annotate xlab ylab
 #' @importFrom ggpubr theme_pubr
+#' @importFrom stats p.adjust
 #' @export
 plot_feature_correlation_distribution <- function(feature_cor_df, alpha = 0.01) {
   feature_cor_df$pvalue <- p.adjust(feature_cor_df$pvalue, method = "BH")
@@ -253,6 +257,7 @@ plot_feature_correlation_distribution <- function(feature_cor_df, alpha = 0.01) 
 #' @importFrom ggplot2 ggplot aes geom_histogram geom_density geom_vline
 #'   annotate xlab ylab
 #' @importFrom ggpubr theme_pubr
+#' @importFrom stats p.adjust
 #' @export
 plot_feature_correlation_distribution_combo <- function(feature_cor_df, alpha = 0.01) {
   feature_cor_df$pvalue <- p.adjust(feature_cor_df$pvalue, method = "BH")

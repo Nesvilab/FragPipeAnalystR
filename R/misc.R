@@ -360,6 +360,7 @@ plot_feature <- function(se, protein, index=NULL,
 #' @importFrom dplyr group_by summarize left_join filter if_all mutate
 #' @importFrom tidyr gather
 #' @importFrom tibble rownames_to_column
+#' @importFrom stats na.omit
 #'
 #' @export
 plot_feature_numbers <- function(se, exp=NULL, feature=NULL, fill="condition") {
@@ -481,6 +482,7 @@ plot_feature_numbers <- function(se, exp=NULL, feature=NULL, fill="condition") {
 #' @importFrom SummarizedExperiment assay
 #' @importFrom dplyr arrange mutate
 #' @importFrom data.table setDT
+#' @importFrom stats na.omit
 #'
 #' @export
 

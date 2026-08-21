@@ -70,7 +70,7 @@
 #' @importFrom S4Vectors metadata
 #' @importFrom dplyr left_join select
 #' @importFrom tibble rownames_to_column
-#' @importFrom stats prcomp complete.cases
+#' @importFrom stats prcomp complete.cases sd as.formula
 #'
 #' @export
 plot_pca <- function(dep, x = 1, y = 2, indicate = c("condition", "replicate"),
@@ -400,7 +400,7 @@ plot_pca <- function(dep, x = 1, y = 2, indicate = c("condition", "replicate"),
   }
 }
 
-#' @importFrom stats cmdscale dist cor
+#' @importFrom stats cmdscale dist cor as.dist setNames as.formula sd
 #' @export
 plot_mds <- function(dep, x = 1, y = 2, indicate = c("condition", "replicate"),
                      dist_method = c("euclidean", "correlation", "manhattan"),
@@ -715,6 +715,7 @@ plot_mds <- function(dep, x = 1, y = 2, indicate = c("condition", "replicate"),
   }
 }
 
+#' @importFrom stats runif setNames as.formula sd
 #' @export
 plot_umap <- function(dep, indicate = c("condition", "replicate"), min_dist = 0.01, n_neighbors = 15, metric = 'euclidean', init = 'spectral',
                       seed = NULL, label = FALSE, n = 500, point_size = 8, label_size = 3, plot = TRUE, ID_col = "sample_name", exp = NULL, interactive = F) {

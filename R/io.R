@@ -54,7 +54,7 @@ make.unique.2 <- function(x, sep = ".") {
 
 # internal function to read quantification table
 readQuantTable <- function(quant_table_path, type = "TMT", level=NULL, log2transform = F, exp_type=NULL, additional_cols=NULL) {
-  temp_data <- read.table(quant_table_path,
+  temp_data <- utils::read.table(quant_table_path,
     header = TRUE,
     fill = TRUE, # to fill any missing data
     sep = "\t",
@@ -132,13 +132,13 @@ readQuantTable <- function(quant_table_path, type = "TMT", level=NULL, log2trans
 
 # internal function to read experiment annotation file
 readExpDesign <- function(exp_anno_path, type = "TMT", lfq_type="Intensity", lowercase=F) {
-  temp_df <- read.table(exp_anno_path, header = T, sep = "\t", stringsAsFactors = F)
+  temp_df <- utils::read.table(exp_anno_path, header = T, sep = "\t", stringsAsFactors = F)
   if (type == "TMT") {
     if (ncol(temp_df) == 1) {
       # submitting annotation.txt (not experiment_annotation.tsv) will crash here
       tryCatch(
         {
-          temp_df <- read.table(exp_anno_path,
+          temp_df <- utils::read.table(exp_anno_path,
             header = T,
             sep = " ",
             stringsAsFactors = FALSE
@@ -219,7 +219,7 @@ readExpDesign <- function(exp_anno_path, type = "TMT", lfq_type="Intensity", low
       }
     }
   } else if (type == "DIA") {
-    temp_df <- read.table(exp_anno_path,
+    temp_df <- utils::read.table(exp_anno_path,
       header = T,
       sep = "\t",
       stringsAsFactors = FALSE
@@ -785,5 +785,5 @@ export_se <- function(se, output_file, sep="\t", include_cols=NULL) {
   } else {
     temp <- cbind(rowData(se)[,include_cols], assay(se))
   }
-  write.table(temp, output_file, sep=sep, quote=F, row.names = F)
+  utils::write.table(temp, output_file, sep=sep, quote=F, row.names = F)
 }

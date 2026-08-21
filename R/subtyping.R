@@ -197,6 +197,7 @@ consensus_clustering_analysis <- function(se,
 #' @importFrom S4Vectors metadata "metadata<-"
 #' @importFrom ComplexHeatmap Heatmap draw
 #' @importFrom grDevices png dev.off
+#' @importFrom utils write.table
 #'
 #' @export
 snf_analysis = function(se,
