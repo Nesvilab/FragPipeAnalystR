@@ -120,10 +120,20 @@ VSN_normalization <- function(se) {
 #'   Must have "Index" and "ProteinID" columns in rowData.
 #' @param print_progress Logical indicating whether to print progress messages
 #'   during normalization. Default is \code{FALSE}.
+#' @param keep_unmatched Logical indicating whether PTM sites with no matching
+#'   parent protein in \code{se} should be kept in the output. When \code{TRUE},
+#'   these sites are included with their original (un-normalized) values, since
+#'   there is no protein-level measurement to regress them against. Default is
+#'   \code{FALSE}, which drops them (matching the previous behavior).
 #'
 #' @return A \code{SummarizedExperiment} object containing the protein-normalized
 #'   PTM data. The assay values represent the residuals from regressing PTM
-#'   intensities on protein intensities.
+#'   intensities on protein intensities. If \code{keep_unmatched = TRUE}, PTM
+#'   sites without a matched parent protein are also included, with their
+#'   original values left un-normalized. The rowData gains a logical
+#'   \code{ParentProteinMatched} column indicating whether each site had a
+#'   matched parent protein and was normalized against it (\code{FALSE} for
+#'   sites kept unmatched).
 #'
 #' @details
 #' This normalization is useful for phosphoproteomics and other PTM studies
@@ -138,10 +148,21 @@ VSN_normalization <- function(se) {
 #' The correlation between normalized PTM values and protein values should be
 #' near zero, indicating successful removal of protein-level effects.
 #'
+#' PTM sites whose parent protein is not found in \code{se} cannot be
+#' normalized this way, since there is no protein-level signal to regress
+#' against. By default such sites are dropped from the result; set
+#' \code{keep_unmatched = TRUE} to retain them with their original values.
+#' The returned rowData's \code{ParentProteinMatched} column marks which
+#' sites were actually matched and normalized (\code{TRUE}) versus kept
+#' unmatched (\code{FALSE}).
+#'
 #' @examples
 #' \dontrun{
 #' # Normalize phosphosite data using protein data
 #' phospho_normalized <- PTM_normalization(phospho_se, protein_se)
+#'
+#' # Keep phosphosites that have no matching parent protein
+#' phospho_normalized <- PTM_normalization(phospho_se, protein_se, keep_unmatched = TRUE)
 #' }
 #'
 #' @seealso \code{\link{GN_normalization}}, \code{\link{MD_normalization}}
@@ -151,12 +172,13 @@ VSN_normalization <- function(se) {
 #' @importFrom stats lm cor na.omit
 #'
 #' @export
-PTM_normalization <- function(ptm_se, se, print_progress=F) {
+PTM_normalization <- function(ptm_se, se, print_progress=F, keep_unmatched=F) {
   pprot <- gsub("_.*", "", rowData(ptm_se)$Index)
   inter_prot <- intersect(pprot, rowData(se)$Index)
 
   prot_df <- cbind(rowData(se)[c("ProteinID")], assay(se))
   psite_df <- cbind(rowData(ptm_se)[c("ProteinID", "Index")], assay(ptm_se))
+  unmatched_index <- psite_df$Index[!psite_df$ProteinID %in% inter_prot]
   psite_df <- psite_df[psite_df$ProteinID %in% inter_prot,]
 
   inter_sample <- intersect(colData(ptm_se)$sample_name, colData(se)$sample_name)
@@ -273,12 +295,27 @@ PTM_normalization <- function(ptm_se, se, print_progress=F) {
   subpsite = data.frame(sites_windows,  dm, stringsAsFactors = F)
   rm(dm)
   colnames(subpsite) = c("Index", inter_sample)
-  rownames(subpsite) <- subpsite$Index
   cat("get subpsite", "\n")
+
+  if (keep_unmatched && length(unmatched_index) > 0) {
+    unmatched_df <- as.data.frame(assay(ptm_se)[unmatched_index, inter_sample, drop = FALSE])
+    unmatched_df <- data.frame(Index = unmatched_index, unmatched_df,
+                                stringsAsFactors = FALSE, check.names = FALSE)
+    colnames(unmatched_df) <- c("Index", inter_sample)
+    subpsite <- rbind(subpsite, unmatched_df)
+    cat(length(unmatched_index), "PTM site(s) with no matched parent protein kept un-normalized\n")
+  }
+
+  rownames(subpsite) <- subpsite$Index
 
   normalized_se <- ptm_se
   normalized_se <- normalized_se[subpsite$Index, inter_sample]
   assay(normalized_se) <- subpsite[,-c(1)]
+
+  # Record whether each site had a matched parent protein and was actually
+  # normalized against it, so matched and unmatched (kept via keep_unmatched)
+  # sites are distinguishable.
+  rowData(normalized_se)$ParentProteinMatched <- !(rownames(normalized_se) %in% unmatched_index)
 
   return(normalized_se)
 }
