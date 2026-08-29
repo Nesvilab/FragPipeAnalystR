@@ -50,6 +50,7 @@ Imports:
     ggplotify,
     scales
 Suggests:
+    reticulate,
     devtools,
     ensembldb,
     knitr,
