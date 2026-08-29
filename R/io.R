@@ -99,9 +99,21 @@ readQuantTable <- function(quant_table_path, type = "TMT", level=NULL, log2trans
       if ("SequenceWindow" %in% colnames(temp_data)) {
         print("Error: wrong format. Are you using single-site report? Switch to use level=site to correctly read the file")
         return(NULL)
+      } else if ("Best Precursor for Quant" %in% colnames(temp_data)) {
+        # New DIA-NN peptide report format
+        non_numeric_cols <- c("Index", "Gene", "ProteinID", "Peptide", "SequenceWindow",
+                              "Multiplicity", "Best Localization", "Best Scan for Localization",
+                              "Best Precursor for Quant")
+        if (!is.null(additional_cols)) {
+          non_numeric_cols <- c(non_numeric_cols, additional_cols)
+        }
+        mut.cols <- colnames(temp_data)[!colnames(temp_data) %in% non_numeric_cols]
+        temp_data[mut.cols] <- sapply(temp_data[mut.cols], as.numeric)
       } else {
+        # Old DIA-NN precursor report format
         # validate(fragpipe_DIA_input_test(temp_data))
         # temp_data <- temp_data[!grepl("contam", temp_data$Protein),]
+        temp_data <- temp_data[, !grepl(":\\d+", colnames(temp_data))] # remove modification columns
         temp <- melt.data.table(setDT(temp_data[,!colnames(temp_data) %in% c("Proteotypic", "Precursor.Charge", "Precursor.Id",
                                                                              "Modified.Sequence", "First.Protein.Description",
                                                                              "All Mapped Proteins", "All Mapped Genes")]),
@@ -254,6 +266,28 @@ readExpDesign <- function(exp_anno_path, type = "TMT", lfq_type="Intensity", low
     }
   }
   return(temp_df)
+}
+
+# Internal helper: normalize DIA matrix column names and exp_design$file/label
+# by stripping file extensions so they match across both sources.
+normalize_dia_file_names <- function(data_unique, selected_cols, exp_design) {
+  col_names <- colnames(data_unique)[selected_cols]
+  if (any(grepl("(?:_calibrated|_uncalibrated)?\\.[^.]+$", col_names, perl = TRUE))) {
+    colnames(data_unique)[selected_cols] <- gsub(
+      "(?:_calibrated|_uncalibrated)?\\.[^.]+$", "", col_names, perl = TRUE
+    )
+    exp_design$file <- gsub("\\.[^.]+$", "", exp_design$file)
+  } else if (!any(grepl("\\.mzML$", col_names)) && any(grepl("\\.mzML$", exp_design$file))) {
+    exp_design$file <- gsub(".*\\\\", "", gsub("\\.mzML$", "", exp_design$file))
+  } else if (!any(grepl("\\.raw$", col_names)) && any(grepl("\\.raw$", exp_design$file))) {
+    exp_design$file <- gsub(".*\\\\", "", gsub("\\.raw$", "", exp_design$file))
+  } else if (!any(grepl("\\.d$", col_names)) && any(grepl("\\.d$", exp_design$file))) {
+    exp_design$file <- gsub(".*\\\\", "", gsub("\\.d$", "", exp_design$file))
+  }
+  if (!all(is.na(exp_design$replicate))) {
+    exp_design$label <- exp_design$file
+  }
+  list(data_unique = data_unique, exp_design = exp_design)
 }
 
 #' Create SummarizedExperiment from FragPipe output files
@@ -412,19 +446,35 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
     }
   } else if (type == "DIA") {
     if (level == "protein") {
-      if (gencode) {
-        quant_table <- quant_table[grepl("^ENS", quant_table$Protein.Group),]
-      }
-      data_unique <- make_unique(quant_table, "Genes", "Protein.Group")
-      cols <- colnames(data_unique)
-      if (is.null(additional_cols)) {
-        selected_cols <- which(!(cols %in% c("Protein.Group", "Protein.Ids", "Protein.Names", "Genes", "First.Protein.Description", "ID", "name")))
+      if (startsWith(basename(quant_table_path), "abundance_protein")) {
+        # FragPipe unified protein report
+        if (gencode) {
+          quant_table <- quant_table[grepl("^ENS", quant_table$Gene), ]
+        }
+        data_unique <- make_unique(quant_table, "Gene", "Protein ID")
+        info_cols <- c("Protein", "Protein ID", "Entry Name", "Gene", "Organism",
+                       "Description", "Protein Existence", "Protein Coverage", "Protein Length",
+                       "Protein Probability", "Top Peptide Probability", "Indistinguishable Proteins",
+                       "NumberPSM", "Best Precursor ID", "ID", "name")
       } else {
-        selected_cols <- which(!(cols %in% c("Protein.Group", "Protein.Ids", "Protein.Names", "Genes", "First.Protein.Description", "ID", "name",
-                                             additional_cols)))
+        # DIA-NN protein group report
+        if (gencode) {
+          quant_table <- quant_table[grepl("^ENS", quant_table$Protein.Group), ]
+        }
+        data_unique <- make_unique(quant_table, "Genes", "Protein.Group")
+        info_cols <- c("Protein.Group", "Protein.Ids", "Protein.Names", "Genes",
+                       "First.Protein.Description", "ID", "name")
       }
+      if (!is.null(additional_cols)) {
+        info_cols <- c(info_cols, additional_cols)
+      }
+      cols <- colnames(data_unique)
+      selected_cols <- which(!(cols %in% info_cols))
       # TODO: use DIA function
       # test_match_DIA_column_design(data_unique, selected_cols, exp_design)
+      norm <- normalize_dia_file_names(data_unique, selected_cols, exp_design)
+      data_unique <- norm$data_unique
+      exp_design <- norm$exp_design
       data_se <- make_se_customized(data_unique, selected_cols, exp_design,
                                     log2transform = log2transform, exp="DIA", level="protein")
       dimnames(data_se) <- list(dimnames(data_se)[[1]], colData(data_se)$sample_name)
@@ -443,6 +493,9 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
       }
       # TODO: use DIA function
       # test_match_DIA_column_design(data_unique, selected_cols, exp_design)
+      norm <- normalize_dia_file_names(data_unique, selected_cols, exp_design)
+      data_unique <- norm$data_unique
+      exp_design <- norm$exp_design
       data_se <- make_se_customized(data_unique, selected_cols, exp_design,
                                     log2transform = log2transform, exp="DIA", level="gene")
       dimnames(data_se) <- list(dimnames(data_se)[[1]], colData(data_se)$sample_name)
@@ -451,17 +504,29 @@ make_se_from_files <- function(quant_table_path, exp_anno_path, type = "TMT", le
       if (level == "site") { # single-site
         data_unique <- make_unique(quant_table, "ProteinID", "Index")
       } else { # level == "peptide"
-        data_unique <- make_unique(quant_table, "Protein.Group", "Index")
+        if ("Best Precursor for Quant" %in% colnames(quant_table)) {
+          # New DIA-NN peptide report format
+          data_unique <- make_unique(quant_table, "ProteinID", "Index")
+        } else {
+          # Old DIA-NN precursor report format
+          data_unique <- make_unique(quant_table, "Protein.Group", "Index")
+        }
       }
       cols <- colnames(data_unique)
-      if (is.null(additional_cols)) {
-        selected_cols <- which(!(cols %in% c("Index", "Protein.Group", "Protein.Ids", "Stripped.Sequence", "Protein.Names", "Genes", "First.Protein.Description", "ID", "name",
-                                             "Gene", "ProteinID", "Peptide", "SequenceWindow", "All Mapped Proteins", "All Mapped Genes")))
-      } else {
-        selected_cols <- which(!(cols %in% c("Index", "Protein.Group", "Protein.Ids", "Stripped.Sequence", "Protein.Names", "Genes", "First.Protein.Description", "ID", "name",
-                                             "Gene", "ProteinID", "Peptide", "SequenceWindow", "All Mapped Proteins", "All Mapped Genes", additional_cols)))
+      info_cols <- c("Index", "Protein.Group", "Protein.Ids", "Stripped.Sequence",
+                     "Protein.Names", "Genes", "First.Protein.Description", "ID", "name",
+                     "Gene", "ProteinID", "Peptide", "SequenceWindow",
+                     "All Mapped Proteins", "All Mapped Genes",
+                     "Multiplicity", "Best Localization", "Best Scan for Localization",
+                     "Best Precursor for Quant")
+      if (!is.null(additional_cols)) {
+        info_cols <- c(info_cols, additional_cols)
       }
+      selected_cols <- which(!(cols %in% info_cols))
       # test_match_DIA_column_design(data_unique, selected_cols, exp_design)
+      norm <- normalize_dia_file_names(data_unique, selected_cols, exp_design)
+      data_unique <- norm$data_unique
+      exp_design <- norm$exp_design
       data_se <- make_se_customized(data_unique, selected_cols, exp_design, log2transform=log2transform, exp="DIA", level=level)
       dimnames(data_se) <- list(dimnames(data_se)[[1]], colData(data_se)$sample_name)
       colData(data_se)$label <- colData(data_se)$sample_name
